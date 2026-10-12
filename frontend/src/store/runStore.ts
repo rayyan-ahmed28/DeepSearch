@@ -1,37 +1,53 @@
 /**
  * Research runs, keyed by research id, shared by the Execution, Workspace and
- * Report screens. A run keeps going when you leave its page, and survives a
- * reload: the sample replay is deterministic, so only {config, startedAt,
- * skipped} is saved and the state is rebuilt by replaying events up to now.
+ * Report screens. A run keeps going when you leave its page and survives a
+ * reload. Two engines feed the same `streamReducer`:
  *
- * When the backend exists, `play` is replaced by a WebSocket to
- * /ws/research/{id} that feeds the same `streamReducer`; the backend replays
- * its event backlog on connect, so reloads work the same way.
+ * - backend: the FastAPI server runs the real pipeline and streams events
+ *   over WS /ws/research/{id}. On reconnect the server replays the backlog
+ *   after the last event we have (`?after=seq`).
+ * - sample: the deterministic sample replay (lib/sampleRun.ts), used for the
+ *   Dashboard samples and whenever the backend is not running. Only
+ *   {config, startedAt, skipped} is saved; state is rebuilt by replaying.
  */
 import { create } from "zustand";
 
+import { RUN_NOT_FOUND_CLOSE_CODE, createResearch, researchSocketUrl } from "@/lib/api";
 import type { ExecEvent, TimedEvent } from "@/lib/executionEvents";
 import { DEFAULT_SAMPLE_QUERY, SAMPLE_RUNS, domainsForMode, type RunConfig } from "@/lib/runConfig";
 import { buildMockSequence } from "@/lib/sampleRun";
 import { initialStreamState, streamReducer, type StreamState } from "@/lib/streamReducer";
 
+export type RunEngine =
+  | { kind: "sample"; note?: string }
+  | { kind: "backend"; llm: "gemini" | "fake" };
+
 export interface RunRecord {
   id: string;
   config: RunConfig;
+  engine: RunEngine;
   /** A fictional Dashboard sample, recreated on demand and never saved. */
   sample: boolean;
   startedAt: number;
-  /** The user pressed "Skip to end". */
+  /** Backend runs: when the final event arrived. */
+  finishedAt: number | null;
+  /** Sample runs: the user pressed "Skip to end". */
   skipped: boolean;
+  /** Sample runs: length of the replay. */
   durationMs: number;
+  /** Backend runs: last event sequence number received. */
+  lastSeq: number;
   state: StreamState;
 }
 
 interface RunStore {
   runs: Record<string, RunRecord>;
-  startRun: (config: RunConfig) => string;
+  /** Starts on the backend if it is running, otherwise as a sample replay. */
+  startRun: (config: RunConfig) => Promise<string>;
   ensureSampleRun: (id: string) => void;
+  /** Sample runs only. */
   restartRun: (id: string) => void;
+  /** Sample runs only. */
   skipToEnd: (id: string) => void;
 }
 
@@ -44,6 +60,7 @@ interface SavedRun {
   config: RunConfig;
   startedAt: number;
   skipped: boolean;
+  engine?: RunEngine;
 }
 
 function loadSaved(): SavedRun[] {
@@ -61,12 +78,19 @@ function save(runs: Record<string, RunRecord>) {
     .filter((r) => !r.sample)
     .sort((a, b) => b.startedAt - a.startedAt)
     .slice(0, MAX_SAVED_RUNS)
-    .map(({ id, config, startedAt, skipped }) => ({ id, config, startedAt, skipped }));
+    .map(({ id, config, startedAt, skipped, engine }) => ({ id, config, startedAt, skipped, engine }));
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
   } catch {
     // Private window or storage disabled: runs still work, they just won't survive a reload.
   }
+}
+
+function setRun(id: string, update: (run: RunRecord) => RunRecord) {
+  useRunStore.setState((s) => {
+    const run = s.runs[id];
+    return run ? { runs: { ...s.runs, [id]: update(run) } } : s;
+  });
 }
 
 // ── Sample replay driver ───────────────────────────────────────────
@@ -77,53 +101,134 @@ function clearTimers(id: string) {
   timers.delete(id);
 }
 
-function sequenceFor(id: string, config: RunConfig): TimedEvent[] {
-  return buildMockSequence(domainsForMode(config.mode), config.mode !== "auto", id);
-}
-
 function fold(events: ExecEvent[]): StreamState {
   return events.reduce(streamReducer, initialStreamState());
-}
-
-function applyEvent(id: string, event: ExecEvent) {
-  useRunStore.setState((s) => {
-    const run = s.runs[id];
-    if (!run) return s;
-    return { runs: { ...s.runs, [id]: { ...run, state: streamReducer(run.state, event) } } };
-  });
 }
 
 /** Rebuild state up to "now" and schedule the rest of the sequence. */
 function play(id: string, sequence: TimedEvent[], startedAt: number): StreamState {
   clearTimers(id);
   const elapsed = Date.now() - startedAt;
-  const past = sequence.filter((s) => s.at <= elapsed);
   const pending = sequence.filter((s) => s.at > elapsed);
   timers.set(
     id,
-    pending.map((step) => window.setTimeout(() => applyEvent(id, step.event), step.at - elapsed)),
+    pending.map((step) =>
+      window.setTimeout(() => setRun(id, (run) => ({ ...run, state: streamReducer(run.state, step.event) })), step.at - elapsed),
+    ),
   );
-  return fold(past.map((s) => s.event));
+  return fold(sequence.filter((s) => s.at <= elapsed).map((s) => s.event));
 }
 
-function makeRecord(id: string, config: RunConfig, opts: { sample: boolean; startedAt: number; skipped: boolean }): RunRecord {
-  const sequence = sequenceFor(id, config);
+function sampleRecord(
+  id: string,
+  config: RunConfig,
+  opts: { sample: boolean; startedAt: number; skipped: boolean; note?: string },
+): RunRecord {
+  const sequence = buildMockSequence(domainsForMode(config.mode), config.mode !== "auto", id);
   const durationMs = sequence[sequence.length - 1].at;
   const state = opts.skipped ? fold(sequence.map((s) => s.event)) : play(id, sequence, opts.startedAt);
-  return { id, config, ...opts, durationMs, state };
+  return {
+    id,
+    config,
+    engine: { kind: "sample", note: opts.note },
+    sample: opts.sample,
+    startedAt: opts.startedAt,
+    finishedAt: null,
+    skipped: opts.skipped,
+    durationMs,
+    lastSeq: 0,
+    state,
+  };
+}
+
+// ── Backend driver ─────────────────────────────────────────────────
+interface ServerEvent {
+  type: ExecEvent["type"];
+  payload: unknown;
+  seq?: number;
+  timestamp?: string;
+}
+
+const sockets = new Map<string, WebSocket>();
+const MAX_RECONNECTS = 4;
+
+function applyServerEvent(id: string, event: ServerEvent) {
+  setRun(id, (run) => {
+    // seq 0 / missing = out-of-band (e.g. "run not on the server"): always apply.
+    if (event.seq && event.seq <= run.lastSeq) return run; // already have it
+    const at = event.timestamp ? Date.parse(event.timestamp) : Date.now();
+    const terminal = event.type === "report_ready" || event.type === "error";
+    return {
+      ...run,
+      lastSeq: event.seq || run.lastSeq,
+      startedAt: event.seq === 1 && !Number.isNaN(at) ? at : run.startedAt,
+      finishedAt: terminal ? at : run.finishedAt,
+      state: streamReducer(run.state, event as ExecEvent),
+    };
+  });
+}
+
+function connect(id: string, attempt = 0) {
+  const run = useRunStore.getState().runs[id];
+  if (!run || run.engine.kind !== "backend") return;
+  sockets.get(id)?.close();
+  const ws = new WebSocket(researchSocketUrl(id, run.lastSeq));
+  sockets.set(id, ws);
+
+  ws.onmessage = (message) => {
+    try {
+      applyServerEvent(id, JSON.parse(message.data as string) as ServerEvent);
+    } catch {
+      // ignore a malformed message rather than break the run view
+    }
+  };
+  ws.onclose = (closed) => {
+    if (sockets.get(id) === ws) sockets.delete(id);
+    const current = useRunStore.getState().runs[id];
+    if (!current || current.state.done || current.state.error || closed.code === RUN_NOT_FOUND_CLOSE_CODE) return;
+    if (attempt < MAX_RECONNECTS) {
+      window.setTimeout(() => connect(id, attempt + 1), 1000 * (attempt + 1));
+    } else {
+      applyServerEvent(id, { type: "error", payload: { message: "Lost the connection to the backend. Is it still running?" } });
+    }
+  };
+}
+
+function backendRecord(id: string, config: RunConfig, llm: "gemini" | "fake", startedAt: number): RunRecord {
+  return {
+    id,
+    config,
+    engine: { kind: "backend", llm },
+    sample: false,
+    startedAt,
+    finishedAt: null,
+    skipped: false,
+    durationMs: 0,
+    lastSeq: 0,
+    state: initialStreamState(),
+  };
 }
 
 function newRunId(): string {
   return `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 }
 
+// ── Store ──────────────────────────────────────────────────────────
 export const useRunStore = create<RunStore>()((set, get) => ({
   runs: {},
 
-  startRun: (config) => {
-    const id = newRunId();
+  startRun: async (config) => {
     const clean: RunConfig = { ...config, query: config.query.trim() || DEFAULT_SAMPLE_QUERY };
-    const record = makeRecord(id, clean, { sample: false, startedAt: Date.now(), skipped: false });
+    const created = await createResearch(clean);
+    if (created.ok) {
+      const id = created.run.research_id;
+      set((s) => ({ runs: { ...s.runs, [id]: backendRecord(id, clean, created.run.llm_provider, Date.now()) } }));
+      save(get().runs);
+      connect(id);
+      return id;
+    }
+    const id = newRunId();
+    const record = sampleRecord(id, clean, { sample: false, startedAt: Date.now(), skipped: false, note: created.reason });
     set((s) => ({ runs: { ...s.runs, [id]: record } }));
     save(get().runs);
     return id;
@@ -132,36 +237,61 @@ export const useRunStore = create<RunStore>()((set, get) => ({
   ensureSampleRun: (id) => {
     const def = SAMPLE_RUNS[id];
     if (!def || get().runs[id]) return;
-    const record = makeRecord(id, def.config, { sample: true, startedAt: Date.now(), skipped: def.completed });
+    const record = sampleRecord(id, def.config, { sample: true, startedAt: Date.now(), skipped: def.completed });
     set((s) => ({ runs: { ...s.runs, [id]: record } }));
   },
 
   restartRun: (id) => {
     const run = get().runs[id];
-    if (!run) return;
-    const record = makeRecord(id, run.config, { sample: run.sample, startedAt: Date.now(), skipped: false });
+    if (!run || run.engine.kind !== "sample") return;
+    const record = sampleRecord(id, run.config, { sample: run.sample, startedAt: Date.now(), skipped: false, note: run.engine.note });
     set((s) => ({ runs: { ...s.runs, [id]: record } }));
     save(get().runs);
   },
 
   skipToEnd: (id) => {
     const run = get().runs[id];
-    if (!run) return;
+    if (!run || run.engine.kind !== "sample") return;
     clearTimers(id);
-    const record = makeRecord(id, run.config, { sample: run.sample, startedAt: run.startedAt, skipped: true });
+    const record = sampleRecord(id, run.config, { sample: run.sample, startedAt: run.startedAt, skipped: true, note: run.engine.note });
     set((s) => ({ runs: { ...s.runs, [id]: record } }));
     save(get().runs);
   },
 }));
 
-// Restore saved runs once, when the app loads.
-const restored = Object.fromEntries(
-  loadSaved().map((r) => [r.id, makeRecord(r.id, r.config, { sample: false, startedAt: r.startedAt, skipped: r.skipped })]),
-);
-useRunStore.setState({ runs: restored });
+// Restore saved runs once, when the app loads; backend runs reconnect and get their backlog.
+const saved = loadSaved();
+useRunStore.setState({
+  runs: Object.fromEntries(
+    saved.map((r) => [
+      r.id,
+      r.engine?.kind === "backend"
+        ? backendRecord(r.id, r.config, r.engine.llm, r.startedAt)
+        : sampleRecord(r.id, r.config, { sample: false, startedAt: r.startedAt, skipped: r.skipped, note: r.engine?.note }),
+    ]),
+  ),
+});
+saved.filter((r) => r.engine?.kind === "backend").forEach((r) => connect(r.id));
 
-/** Elapsed run time in ms; a skipped run counts as its full sample length. */
+// ── Helpers for screens ────────────────────────────────────────────
+export function isRunActive(run: RunRecord): boolean {
+  return !run.state.done && !run.state.error;
+}
+
+/** Elapsed run time in ms. A skipped sample counts as its full length. */
 export function runElapsedMs(run: RunRecord, now: number): number {
+  if (run.engine.kind === "backend") return Math.max(0, (run.finishedAt ?? now) - run.startedAt);
   if (run.skipped || run.state.done) return run.durationMs;
   return Math.min(Math.max(now - run.startedAt, 0), run.durationMs);
+}
+
+/** How to describe where a run's events come from, honestly. */
+export function engineLabel(run: RunRecord): { badge: string; line: string } {
+  if (run.engine.kind === "backend") {
+    return run.engine.llm === "gemini"
+      ? { badge: "Backend run · Gemini", line: "Backend run · live data · Gemini" }
+      : { badge: "Backend run · Rule-based stand-in", line: "Backend run · live data · rule-based stand-in for the LLM (no Gemini key)" };
+  }
+  const note = run.engine.note ? ` (${run.engine.note})` : "";
+  return { badge: "Demo replay · Sample data", line: `Demo replay of sample events${note}` };
 }

@@ -49,7 +49,7 @@ export default function AgentPanel({ state }: { state: StreamState }) {
           const running = status === "running";
           const line =
             status === "skipped"
-              ? "Not needed for this run"
+              ? detail ?? "Not needed for this run"
               : running
                 ? detail ?? lastLog ?? "Working"
                 : lastLog ?? (status === "idle" ? "Waiting for upstream agents" : "");

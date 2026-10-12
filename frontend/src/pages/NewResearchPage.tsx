@@ -56,13 +56,16 @@ export default function NewResearchPage() {
   const [advancedOpen, setAdvancedOpen] = useState(true);
   const [toggles, setToggles] = useState(DEFAULT_TOGGLES);
   const startRun = useRunStore((s) => s.startRun);
+  const [starting, setStarting] = useState(false);
 
   function updateToggle(key: keyof typeof DEFAULT_TOGGLES, value: boolean) {
     setToggles((prev) => ({ ...prev, [key]: value }));
   }
 
-  function startResearch() {
-    const id = startRun({ query, mode: domain, depth });
+  async function startResearch() {
+    if (starting) return;
+    setStarting(true);
+    const id = await startRun({ query, mode: domain, depth });
     navigate(`/research/${id}`);
   }
 
@@ -316,7 +319,8 @@ export default function NewResearchPage() {
           <button
             type="button"
             onClick={startResearch}
-            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-on-primary font-headline-sm text-headline-sm font-medium hover:bg-primary-container hover:text-on-primary-container shadow-md transition-all"
+            disabled={starting}
+            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-on-primary font-headline-sm text-headline-sm font-medium hover:bg-primary-container hover:text-on-primary-container shadow-md transition-all disabled:opacity-60 disabled:cursor-wait"
           >
             <span>Start Research</span>
           </button>

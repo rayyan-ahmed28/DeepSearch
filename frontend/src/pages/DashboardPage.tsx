@@ -78,11 +78,14 @@ export default function DashboardPage() {
   const startRun = useRunStore((s) => s.startRun);
   const runs = useRunStore((s) => s.runs);
   const now = useNow(true, 30_000);
+  const [starting, setStarting] = useState(false);
 
   // Takes query and mode explicitly: a suggestion click calls this in the
   // same tick as setQuery, before state has updated.
-  function startResearch(text: string = query, mode: ResearchMode = scope) {
-    const id = startRun({ query: text, mode, depth });
+  async function startResearch(text: string = query, mode: ResearchMode = scope) {
+    if (starting) return;
+    setStarting(true);
+    const id = await startRun({ query: text, mode, depth });
     navigate(`/research/${id}`);
   }
 
@@ -92,7 +95,9 @@ export default function DashboardPage() {
       .filter((r) => !r.sample)
       .sort((a, b) => b.startedAt - a.startedAt)
       .slice(0, 5)
-      .map((r) => toRecentItem(r.id, r.config, r, `This browser · ${formatAgo(r.startedAt, now)}`, false)),
+      .map((r) =>
+        toRecentItem(r.id, r.config, r, `${r.engine.kind === "backend" ? "Backend run" : "Sample replay"} · ${formatAgo(r.startedAt, now)}`, false),
+      ),
     ...Object.entries(SAMPLE_RUNS).map(([sid, def]) => toRecentItem(sid, def.config, runs[sid], "Fictional sample", def.completed)),
   ];
 
@@ -184,6 +189,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={starting}
                   onClick={() => startResearch()}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-headline-sm text-headline-sm font-medium hover:bg-primary-container hover:text-on-primary-container shadow-md transition-all group"
                 >

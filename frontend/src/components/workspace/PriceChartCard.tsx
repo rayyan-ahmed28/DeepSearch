@@ -1,8 +1,8 @@
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { LineChart as LineChartIcon } from "lucide-react";
 
-import type { ChartPayload, TimelineEntry } from "@/lib/executionEvents";
-import { formatDate, formatShortDate } from "@/lib/format";
+import type { CalculationPayload, ChartPayload, TimelineEntry } from "@/lib/executionEvents";
+import { formatCalculation, formatDate, formatShortDate } from "@/lib/format";
 
 const AXIS_TICK = { fill: "#918fa1", fontSize: 10, fontFamily: "IBM Plex Mono" };
 
@@ -14,8 +14,15 @@ function prefersReducedMotion(): boolean {
   }
 }
 
-/** A line ChartSpec (records of {date, close}), with timeline events marked on trading days. */
-export default function PriceChartCard({ chart, markers }: { chart: ChartPayload; markers: TimelineEntry[] }) {
+interface PriceChartCardProps {
+  chart: ChartPayload;
+  markers: TimelineEntry[];
+  calculations: CalculationPayload[];
+  caption: string;
+}
+
+/** A line ChartSpec (records of {date, close}) with timeline events marked, and the figures computed from it. */
+export default function PriceChartCard({ chart, markers, calculations, caption }: PriceChartCardProps) {
   const dates = new Set(chart.data.map((d) => String(d.date)));
   const visibleMarkers = markers.filter((m) => dates.has(m.date));
 
@@ -62,9 +69,20 @@ export default function PriceChartCard({ chart, markers }: { chart: ChartPayload
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="font-body-sm text-body-sm text-outline">
-        Synthetic sample data for a fictional ticker. Dashed lines mark case events from the timeline.
-      </p>
+      {calculations.length > 0 && (
+        <div className="flex flex-col divide-y divide-outline-variant/20 rounded-lg border border-outline-variant/20">
+          {calculations.map((c) => (
+            <div key={c.id} className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="font-body-sm text-body-sm text-on-surface-variant">{c.description}</span>
+              <span className="flex flex-col items-end shrink-0">
+                <span className="font-label-code-md text-label-code-md text-on-surface">{formatCalculation(c.result, c.unit)}</span>
+                <span className="font-label-code-sm text-[10px] text-outline">{c.method}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="font-body-sm text-body-sm text-outline">{caption}</p>
     </article>
   );
 }

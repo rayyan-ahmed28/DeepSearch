@@ -11,5 +11,11 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // In development the browser talks to the FastAPI backend through Vite,
+    // so there is no CORS setup and the WebSocket uses the same origin.
+    proxy: {
+      "/api": "http://localhost:8000",
+      "/ws": { target: "ws://localhost:8000", ws: true },
+    },
   },
 });

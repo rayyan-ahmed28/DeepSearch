@@ -73,6 +73,15 @@ export interface ChartPayload {
   data: Record<string, string | number>[];
 }
 
+/** Mirrors backend `Calculation`: a figure computed in code, with its method (D20). */
+export interface CalculationPayload {
+  id: string;
+  description: string;
+  result: number | Record<string, unknown>;
+  method: string;
+  unit?: string | null;
+}
+
 /** Mirrors backend `TimelineEvent`. */
 export interface TimelineEntry {
   date: string; // ISO date
@@ -89,6 +98,7 @@ export type ExecEvent =
   | { type: "source_found"; payload: SourcePayload }
   | { type: "claim_verified"; payload: ClaimPayload }
   | { type: "chart_ready"; payload: ChartPayload }
+  | { type: "calculation_ready"; payload: CalculationPayload }
   | { type: "timeline_ready"; payload: { events: TimelineEntry[] } }
   | { type: "report_ready"; payload: { research_id: string } }
   | { type: "error"; payload: { message: string } };

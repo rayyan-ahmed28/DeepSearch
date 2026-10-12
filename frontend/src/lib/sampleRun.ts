@@ -248,6 +248,16 @@ const SAMPLE_RUN: ScopedEvent[] = [
   log(5700, "calculator", "Computing event-window returns with pandas", false, "finance"),
   src(6100, "s4", "legal"),
   src(6500, "s5"),
+  ev(6900, {
+    type: "calculation_ready",
+    payload: {
+      id: "ret_event_window",
+      description: `${SAMPLE_TICKER} return from the close before the ruling to the close after it`,
+      result: EVENT_RETURN_PCT,
+      method: "pandas: close[t+1] / close[t-1] - 1",
+      unit: "%",
+    },
+  }, "finance"),
   log(7000, "calculator", "Event-window return computed from the price series", false, "finance"),
   st(7100, "calculator", "done", undefined, "finance"),
   ev(7200, { type: "chart_ready", payload: CHART }, "finance"),

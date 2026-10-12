@@ -140,12 +140,13 @@ LangGraph orchestrates agents, state, conditional routing, parallel execution, a
 - Timestamps are timezone-aware UTC.
 
 ### WebSocket event contract (`WSEvent.type`)
-Every message is `{type, payload, timestamp, seq}`. Types: `domain_classified` (domains, rationale), `plan_created` (manager, tasks), `agent_status` (agent, status: idle | running | done | skipped | error, detail), `activity_log` (agent, message, level, llm_call), `source_found` (a `Source`), `claim_verified` (a `Claim`, status in `verification`), `chart_ready` (a `ChartSpec`), `timeline_ready` (events: `TimelineEvent[]`), `report_ready` (research_id), `error` (message). The TypeScript mirror of these shapes is `frontend/src/lib/executionEvents.ts`; the sample replay emits exactly them, so the real socket is a drop-in replacement. One frontend difference: `Source.url` is optional there, because sample data has no real link and must not invent one.
+Every message is `{type, payload, timestamp, seq}`. Types: `domain_classified` (domains, rationale), `plan_created` (manager, tasks), `agent_status` (agent, status: idle | running | done | skipped | error, detail), `activity_log` (agent, message, level, llm_call), `source_found` (a `Source`), `claim_verified` (a `Claim`, status in `verification`), `chart_ready` (a `ChartSpec`), `calculation_ready` (a `Calculation`, with `unit`), `timeline_ready` (events: `TimelineEvent[]`), `report_ready` (research_id), `error` (message). The TypeScript mirror of these shapes is `frontend/src/lib/executionEvents.ts`; the sample replay emits exactly them, so the real socket is a drop-in replacement. One frontend difference: `Source.url` is optional there, because sample data has no real link and must not invent one.
 
 **Late connections:** the browser can only open `WS /ws/research/{id}` after `POST /api/research` has returned, so early events would be lost. The per-run event bus keeps the run's event history and replays it when a socket connects; the client uses `seq` to skip events it already has.
 
-### Planned REST API
-`POST /api/research`, `GET /api/research/{id}`, `GET /api/research/{id}/report`, `GET /api/research/history`, `GET /api/demo/scenarios`, `GET /api/health` (mode plus booleans for which providers are configured, never key values), `WS /ws/research/{id}`.
+### REST and WebSocket API
+Implemented (Phase 2): `POST /api/research` (`{query (1-2000 chars), mode, depth}` → `{research_id, llm_provider, demo_mode}`), `GET /api/research/{id}` (status, domains, errors), `GET /api/research/{id}/report` (409 until ready), `GET /api/health` (mode, LLM provider, booleans for which providers are configured, never key values), `WS /ws/research/{id}?after=<seq>` (backlog then live; unknown id → an `error` event and close code 4404). Interactive docs at `http://localhost:8000/docs`.
+Not yet: `GET /api/research/history` (Phase 7), `GET /api/demo/scenarios` (Phase 4). Runs live in server memory until persistence.
 
 ### Planned report contract (to be defined in Phase 2)
 Structured report: title, generated_at, domains, demo_mode, ordered sections; each section has id, heading and blocks (paragraph with inline citation references, bullet list, chart reference, table, callout). Each citation points to a `Source` id. **Numbers are never free text** (decision D20): the Report Architect writes placeholders such as `{{calc:<id>}}` and code substitutes the stored value, so every number in the report comes from a stored calculation or data point by construction. Define this contract as a Pydantic model in `schemas.py` before building the Final Report screen, and mirror it in TypeScript. The report must adapt: a legal-only query has no Financial Impact section; a finance-only query has no Case Overview. Section catalogue: Executive Summary, Key Findings, Case Overview, Legal Developments, Financial Impact, Market Reaction, Risk Factors, Timeline, Data Analysis, Sources and Evidence.
@@ -220,6 +221,9 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D21 | Demo Mode replays a recorded live run: worker results and every LLM response, keyed by node. A non-demo query with no keys gets a clear "Live Mode needs API keys" message and the option to open the nearest demo scenario | "Same graph, blank keys" is only possible if LLM outputs are recorded too |
 | D22 | Scope is US jurisdiction | All legal and filing sources are US systems |
 | D23 | Develop natively on Windows: venv at `%USERPROFILE%\.venvs\deepsearch`, `pydantic<2.14`, exact versions in `requirements-lock.txt` | Smart App Control blocks pydantic-core 2.50; long paths break Windows' 260-character limit; WSL's Python lacks pip without sudo (section 16) |
+| D25 | The frontend uses the backend when `/api/health` answers, otherwise the sample replay; every screen says which ("Backend run · …" or "Demo replay of sample events (Backend not running)") | The app always works, and never passes a replay off as a live run |
+| D26 | If Gemini fails (quota, outage, bad JSON), the call falls back to the rule-based stand-in for that step; the failed call still counts against the budget and the activity feed says so | One failed call never kills a run (D12), and the fallback is visible |
+| D27 | Until recorded scenarios exist (Phase 4), backend Demo Mode = rule-based stand-in for the LLM + live Yahoo prices (yfinance needs no key) | Runs real data with zero keys; recorded runs (D21) arrive with the demo scenarios |
 | D24 | Gemini models: `gemini-3.5-flash-lite` by default (`gemini-3.8-flash` if the free tier allows), embeddings `gemini-embedding-001` | `gemini-2.0-flash` shut down 2026-06-01 and `text-embedding-004` on 2026-01-14; Google recommends 3.5 Flash-Lite or 3.8 Flash for new projects |
 
 ---
@@ -351,7 +355,9 @@ An earlier version of this file described a richer Execution screen (a 780×650 
 ### Run store (done, Phase 1)
 - `store/runStore.ts` (Zustand) holds every run keyed by research id: config, start time, and the state folded from its events by the pure `lib/streamReducer.ts`. Execution, Workspace and (later) Report read the same record, so a run keeps going when you change pages.
 - Runs get real ids (`r…`). `startRun(config)` is called by Dashboard and New Research; Execution has Skip to end and Replay.
-- **Survives a reload:** only `{id, config, startedAt, skipped}` is saved to localStorage (wrapped in try/catch, capped at 20 runs). The sample replay is deterministic, so state is rebuilt by replaying events up to "now" and the rest is rescheduled. When the backend exists, the replay driver is swapped for the WebSocket, whose backlog replay gives the same behaviour.
+- **Two engines feed the same reducer (Phase 2):** *backend* runs stream from `WS /ws/research/{id}`; the store remembers the last `seq` and reconnects with `?after=` (up to 4 retries), and a server that no longer knows the run (restart) produces a "Run stopped" banner with "Run again". *Sample* runs use the deterministic replay. Each record stores its engine, and `engineLabel()` gives the honest label shown in Execution and Workspace.
+- **Survives a reload:** only `{id, config, startedAt, skipped, engine}` is saved to localStorage (wrapped in try/catch, capped at 20 runs). Sample runs are rebuilt by replaying up to "now"; backend runs reconnect and get the backlog from the server.
+- In development Vite proxies `/api` and `/ws` to `localhost:8000` (`vite.config.ts`), so there is no CORS setup and the socket shares the page's origin.
 - The Dashboard's Recent Research lists this browser's runs first, then three fictional samples (`demo-1` combined, `demo-2` Legal, `demo-3` Finance, live replay), created on demand from `SAMPLE_RUNS` in `lib/runConfig.ts`. An unknown id shows a "This run isn't in this browser" panel.
 
 ### Research Workspace screen (done, Phase 1)
@@ -368,9 +374,18 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 
 ## 13. Backend knowledge
 
-**Done:** folder scaffold (`api`, `graph/nodes`, `workers`, `providers`, `demo/scenarios`, `models`, `db`, `utils`, `tests`); `requirements.txt` (now installable) plus `requirements-lock.txt` (exact versions from a working Windows install); `.env.example` (current model names); `schemas.py` with reducers; 10 passing tests, including a real LangGraph parallel-merge test.
+**Done:** folder scaffold; `requirements.txt` plus `requirements-lock.txt`; `.env.example`; `schemas.py` with reducers.
 
-**Not started:** config, provider interface, event bus, LangGraph graph, REST and WebSocket routes, Demo replay runner, Router, Managers, all workers, verification, Report Architect, persistence, rate limiting, smoke script.
+**Phase 2 (done): foundation and a finance slice, 44 passing tests (offline: stand-in LLM, fixture prices).**
+- `config.py`: settings from env and `backend/.env`; Demo Mode = no Gemini key (auto).
+- `providers/`: `LLMProvider` interface; `GeminiProvider` (google-genai, JSON forced by a Pydantic `response_schema`); `FakeLLMProvider`, the rule-based stand-in (keyword routing, ticker detection from `$TSLA`/`(TSLA)`/known names, template report). `CallCounter` enforces the budget of 8. Prompts in `providers/prompts.py`; structured outputs in `models/llm_outputs.py`.
+- `utils/events.py`: per-run `EventBus` with history, `seq`, backlog replay and close.
+- `graph/`: `RunContext` (bus, LLM + fallback, counter, price source) passed through LangGraph's config. Nodes: router (0 LLM calls with a manual domain, D7), finance manager, financial data (yfinance, 2 attempts, never fatal), data analysis (pandas: period return, annualised volatility, max drawdown, chart), report architect (placeholders filled and audited by `utils/placeholders.py`). Agents not built yet are marked "skipped: not built yet".
+- `runs.py`: in-memory registry; runs execute as background tasks; failures publish an `error` event and mark running agents as errored.
+- `api/`: the REST and WebSocket endpoints above; `main.py` `create_app()` takes an LLM and price source for tests.
+- Verified live on 2026-10-12: "Analyze the recent stock performance of Tesla" fetched 125-127 real TSLA trading days and produced a report whose figures all came from stored calculations (audit clean).
+
+**Not started:** Legal Manager, Legal Records, Web Research (GPT Researcher), EDGAR, Verification (D19), recorded demo scenarios (D21), persistence, rate limiting, live smoke script. The report is a minimal dict; its proper contract comes in Phase 3.
 
 **Planned structure:** `app/main.py`, `config.py`, `api/` (routes and WebSocket), `graph/` (state, build_graph, `nodes/`), `workers/`, `providers/` (base, gemini, fake, openai stub), `demo/` (scenarios and replay runner), `models/schemas.py`, `db/`, `utils/` (logger, events). Keep the folder structure simple enough for students to explain in a viva.
 
@@ -390,11 +405,11 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Run store (shared by all research screens) | Done (Phase 1) |
 | Research Workspace | Done (Phase 1) |
 | Final Report, Settings, Landing | Not built (stubs) |
-| Backend | Scaffold, schema with reducers, 10 tests; the full dependency set installs and imports on Windows |
+| Backend | Foundation + finance slice (Phase 2), 44 tests; frontend streams real runs over the WebSocket |
 
 **Remaining work, in order (reordered 2026-10-12 so the riskiest integration happens early):**
 1. ~~Shared run store (keyed by research id) and the Research Workspace screen.~~ Done 2026-10-12.
-2. Backend foundation plus one thin end-to-end slice: config, `LLMProvider` with the call counter, event bus with backlog replay, REST + WebSocket, and Router → Finance Manager → Financial Data → Data Analysis → a minimal Report, streamed into the existing Execution screen.
+2. ~~Backend foundation plus one thin end-to-end slice~~ Done 2026-10-12: config, `LLMProvider` with the call counter, event bus with backlog replay, REST + WebSocket, and Router → Finance Manager → Financial Data → Data Analysis → a minimal Report, streamed into the existing Execution screen.
 3. Report contract as a Pydantic model (with D20 placeholders), then the Final Report screen and citation panel.
 4. Demo scenarios as recorded runs (D21), with real, dated data.
 5. Legal Manager and the remaining workers (Legal Records, Web Research via GPT Researcher, EDGAR).
@@ -450,7 +465,7 @@ Still to review when built: Final Report (the mockup is about a real company's r
 - Scaled canvases need an `overflow-hidden` wrapper to avoid page-level horizontal scroll.
 - `tsconfig.node.json` must not emit next to the source: Vite loads `vite.config.js` before `vite.config.ts`, so a stale compiled copy silently wins. Build output now goes to `node_modules/.tmp`.
 
-**Run it locally:** see `README.md` (Windows PowerShell and macOS/Linux commands).
+**Run it locally:** see `README.md` (Windows PowerShell and macOS/Linux commands). In Claude Desktop, `.claude/launch.json` has two configs: `frontend` (Vite on 5173) and `backend` (uvicorn on 8000, using the venv's Python).
 
 ---
 

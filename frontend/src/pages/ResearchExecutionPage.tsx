@@ -1,19 +1,17 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { CheckCircle2, FastForward, FileText, Gavel, LayoutPanelLeft, LineChart, RotateCcw } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
 import AgentTopology from "@/components/execution/AgentTopology";
 import ActivityFeed from "@/components/execution/ActivityFeed";
 import RunNotFound from "@/components/common/RunNotFound";
+import RunErrorBanner from "@/components/common/RunErrorBanner";
 import { useNow, useRun } from "@/hooks/useRun";
 import { AGENTS, LLM_CALL_BUDGET } from "@/lib/executionEvents";
-import { runElapsedMs, useRunStore } from "@/store/runStore";
-
-function formatElapsed(ms: number) {
-  const s = Math.floor(ms / 1000);
-  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-}
+import { formatElapsed } from "@/lib/format";
+import { engineLabel, isRunActive, runElapsedMs, useRunStore } from "@/store/runStore";
 
 const CLAIM_CLASS: Record<string, string> = {
   verified: "text-tertiary",
@@ -41,13 +39,23 @@ function ExecutionView({ id }: { id: string }) {
   const run = useRunStore((s) => s.runs[id])!;
   const restartRun = useRunStore((s) => s.restartRun);
   const skipRun = useRunStore((s) => s.skipToEnd);
-  const now = useNow(!run.state.done);
+  const startRun = useRunStore((s) => s.startRun);
+  const [starting, setStarting] = useState(false);
+  const now = useNow(isRunActive(run));
 
   const state = run.state;
   const query = run.config.query;
   const elapsedMs = runElapsedMs(run, now);
+  const isSample = run.engine.kind === "sample";
   const restart = () => restartRun(id);
   const skipToEnd = () => skipRun(id);
+  // A backend run can't be rewound: "Run again" starts a fresh run with the same settings.
+  const runAgain = async () => {
+    setStarting(true);
+    const newId = await startRun(run.config);
+    setStarting(false);
+    navigate(`/research/${newId}`);
+  };
 
   const agentsDone = AGENTS.filter((a) => state.agents[a.id].status === "done").length;
   const agentsActive = AGENTS.filter((a) => state.agents[a.id].status !== "skipped").length;
@@ -68,9 +76,12 @@ function ExecutionView({ id }: { id: string }) {
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-outline-variant/20">
           <div className="flex flex-col gap-2 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${state.done ? "bg-tertiary" : "bg-primary animate-pulse"}`} />
+              <span
+                className={`w-2 h-2 rounded-full ${state.error ? "bg-error" : state.done ? "bg-tertiary" : "bg-primary animate-pulse"}`}
+              />
               <span className="font-tag-caps text-tag-caps text-outline uppercase tracking-wider">
-                {state.done ? "Run complete" : "Run in progress"} · Demo replay of sample events{run.sample ? " · Fictional sample" : ""}
+                {state.error ? "Run stopped" : state.done ? "Run complete" : "Run in progress"} · {engineLabel(run).line}
+                {run.sample ? " · Fictional sample" : ""}
               </span>
             </div>
             <h1 className="font-headline-lg text-headline-lg text-on-surface truncate">{query}</h1>
@@ -96,7 +107,7 @@ function ExecutionView({ id }: { id: string }) {
             >
               <LayoutPanelLeft size={16} /> Workspace
             </button>
-            {!state.done && (
+            {isSample && !state.done && (
               <button
                 onClick={skipToEnd}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md"
@@ -105,13 +116,16 @@ function ExecutionView({ id }: { id: string }) {
               </button>
             )}
             <button
-              onClick={restart}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md"
+              onClick={isSample ? restart : runAgain}
+              disabled={starting || (!isSample && isRunActive(run))}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <RotateCcw size={16} /> Replay
+              <RotateCcw size={16} /> {isSample ? "Replay" : "Run again"}
             </button>
           </div>
         </header>
+
+        {state.error && <RunErrorBanner message={state.error} />}
 
         {/* Progress */}
         <div className="h-1 w-full rounded-full bg-surface-container-high overflow-hidden">

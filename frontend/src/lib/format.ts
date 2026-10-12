@@ -31,6 +31,14 @@ export function formatClaimValue(value: number, unit?: string | null): string {
   return `${value.toLocaleString("en-US")}${unit ? ` ${unit}` : ""}`;
 }
 
+/** A stored calculation, formatted exactly as the backend fills report placeholders. */
+export function formatCalculation(result: number | Record<string, unknown>, unit?: string | null): string {
+  if (typeof result !== "number") return "[see data]";
+  if (unit === "%") return `${result.toFixed(1)}%`;
+  const n = result.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return unit ? `${n} ${unit}` : n;
+}
+
 /** "5m ago" style, for run lists. */
 export function formatAgo(epochMs: number, now: number): string {
   const s = Math.max(0, Math.round((now - epochMs) / 1000));

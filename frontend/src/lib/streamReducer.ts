@@ -3,6 +3,7 @@ import {
   EDGES,
   type AgentId,
   type AgentStatus,
+  type CalculationPayload,
   type ChartPayload,
   type ClaimPayload,
   type DomainName,
@@ -38,6 +39,7 @@ export interface StreamState {
   sources: SourcePayload[];
   claims: ClaimPayload[];
   charts: ChartPayload[];
+  calculations: CalculationPayload[];
   timeline: TimelineEntry[];
   llmCalls: number;
   done: boolean;
@@ -54,6 +56,7 @@ export function initialStreamState(): StreamState {
     sources: [],
     claims: [],
     charts: [],
+    calculations: [],
     timeline: [],
     llmCalls: 0,
     done: false,
@@ -134,6 +137,8 @@ export function streamReducer(state: StreamState, e: ExecEvent): StreamState {
       return { ...state, claims: upsert(state.claims, e.payload) };
     case "chart_ready":
       return { ...state, charts: upsert(state.charts, e.payload) };
+    case "calculation_ready":
+      return { ...state, calculations: upsert(state.calculations, e.payload) };
     case "timeline_ready":
       return { ...state, timeline: [...e.payload.events].sort((a, b) => a.date.localeCompare(b.date)) };
     case "report_ready":
@@ -147,5 +152,7 @@ export function streamReducer(state: StreamState, e: ExecEvent): StreamState {
           { id: state.logs.length, agent: "system", message: e.payload.message, level: "error", llm: false },
         ],
       };
+    default:
+      return state; // an event type this build doesn't know yet: ignore it
   }
 }

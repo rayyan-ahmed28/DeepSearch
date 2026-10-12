@@ -34,6 +34,11 @@ def merge_by_id(existing: list[Any], new: list[Any]) -> list[Any]:
     return list(merged.values())
 
 
+def merge_dicts(existing: dict, new: dict) -> dict:
+    """LangGraph reducer for dict fields: each branch adds its own keys (e.g. "legal", "finance")."""
+    return {**existing, **new}
+
+
 class SourceType(str, Enum):
     """Legal source hierarchy + finance/general equivalents (Section 5/12)."""
 
@@ -145,6 +150,7 @@ class Calculation(BaseModel):
     description: str
     result: float | dict
     method: str  # e.g. "pandas.pct_change"
+    unit: Optional[str] = None  # "%" or a currency; used when the report fills {{calc:<id>}}
 
 
 class ChartSpec(BaseModel):
@@ -172,7 +178,7 @@ class ResearchState(BaseModel):
     detected_domains: list[Domain] = Field(default_factory=list)
     primary_domain: Optional[Domain] = None
 
-    research_plan: dict = Field(default_factory=dict)
+    research_plan: Annotated[dict, merge_dicts] = Field(default_factory=dict)
     tasks: Annotated[list[Task], merge_by_id] = Field(default_factory=list)
 
     sources: Annotated[list[Source], merge_by_id] = Field(default_factory=list)
@@ -197,7 +203,7 @@ class ResearchState(BaseModel):
 class ResearchRequest(BaseModel):
     """Body of POST /api/research."""
 
-    query: str
+    query: str = Field(min_length=1, max_length=2000)
     mode: Literal["auto", "legal", "finance", "legal_finance"] = "auto"
     depth: ResearchDepth = ResearchDepth.STANDARD
 
@@ -213,6 +219,7 @@ class WSEvent(BaseModel):
         "source_found",
         "claim_verified",
         "chart_ready",
+        "calculation_ready",
         "timeline_ready",
         "report_ready",
         "error",

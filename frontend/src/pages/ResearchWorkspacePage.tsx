@@ -4,6 +4,7 @@ import { FileText, Network } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
 import RunNotFound from "@/components/common/RunNotFound";
+import RunErrorBanner from "@/components/common/RunErrorBanner";
 import AgentPanel from "@/components/workspace/AgentPanel";
 import FindingCard from "@/components/workspace/FindingCard";
 import PriceChartCard from "@/components/workspace/PriceChartCard";
@@ -13,7 +14,7 @@ import { useNow, useRun } from "@/hooks/useRun";
 import { AGENTS, type ClaimPayload, type SourcePayload } from "@/lib/executionEvents";
 import { formatElapsed } from "@/lib/format";
 import type { SourceFilter } from "@/lib/labels";
-import { runElapsedMs, useRunStore } from "@/store/runStore";
+import { engineLabel, isRunActive, runElapsedMs, useRunStore } from "@/store/runStore";
 
 type FindingFilter = "all" | "legal" | "finance" | "cross";
 
@@ -47,7 +48,12 @@ function WorkspaceView({ id }: { id: string }) {
   const navigate = useNavigate();
   const run = useRunStore((s) => s.runs[id])!;
   const state = run.state;
-  const now = useNow(!state.done);
+  const now = useNow(isRunActive(run));
+  const isSample = run.engine.kind === "sample";
+  const finished = !isRunActive(run);
+  const chartCaption = isSample
+    ? "Synthetic sample data for a fictional ticker. Dashed lines mark case events from the timeline."
+    : "Daily closes from Yahoo Finance via yfinance (split-adjusted). Every figure here was computed in code from this series.";
 
   const [findingFilter, setFindingFilter] = useState<FindingFilter>("all");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
@@ -92,7 +98,7 @@ function WorkspaceView({ id }: { id: string }) {
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-tag-caps text-tag-caps text-primary border border-primary/30 bg-primary/10 px-2 py-0.5 rounded uppercase">
-                Demo replay · Sample data
+                {engineLabel(run).badge}
               </span>
               {run.sample && (
                 <span className="font-tag-caps text-tag-caps text-outline border border-outline-variant/40 px-2 py-0.5 rounded uppercase">
@@ -126,9 +132,11 @@ function WorkspaceView({ id }: { id: string }) {
         <div className="mt-4 pt-3 border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-y-2 gap-x-6 font-label-code-sm text-label-code-sm text-on-surface-variant">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${state.done ? "bg-tertiary" : "bg-primary animate-pulse"}`} />
+              <span
+                className={`w-2 h-2 rounded-full ${state.error ? "bg-error" : state.done ? "bg-tertiary" : "bg-primary animate-pulse"}`}
+              />
               <span className="text-on-surface font-medium uppercase tracking-wider">
-                {state.done ? "Run complete" : "Run in progress"}
+                {state.error ? "Run stopped" : state.done ? "Run complete" : "Run in progress"}
               </span>
             </div>
             {telemetry.map((t) => (
@@ -146,6 +154,11 @@ function WorkspaceView({ id }: { id: string }) {
             </div>
           </div>
         </div>
+        {state.error && (
+          <div className="mt-4">
+            <RunErrorBanner message={state.error} />
+          </div>
+        )}
       </header>
 
       {/* Three-panel workspace */}
@@ -181,7 +194,9 @@ function WorkspaceView({ id }: { id: string }) {
           {state.claims.length === 0 && (
             <div className="p-4 rounded-xl bg-surface-container-low border border-dashed border-outline-variant/40 flex flex-col gap-3">
               <p className="font-body-md text-body-md text-on-surface-variant">
-                Findings appear once Verification has extracted the claims and checked each one against its sources.
+                {finished
+                  ? "This run has no findings: claim extraction and verification are not built into the backend yet. Its data and calculations are shown below."
+                  : "Findings appear once Verification has extracted the claims and checked each one against its sources."}
               </p>
               {(["legal", "finance"] as const).map((d) =>
                 state.plans[d] ? (
@@ -213,7 +228,15 @@ function WorkspaceView({ id }: { id: string }) {
           ))}
 
           {showChart &&
-            state.charts.map((chart) => <PriceChartCard key={chart.id} chart={chart} markers={state.timeline} />)}
+            state.charts.map((chart) => (
+              <PriceChartCard
+                key={chart.id}
+                chart={chart}
+                markers={state.timeline}
+                calculations={state.calculations}
+                caption={chartCaption}
+              />
+            ))}
           {showTimeline && state.timeline.length > 0 && (
             <TimelineCard events={state.timeline} citationNumber={citationNumber} onSelectSource={toggleSource} />
           )}
