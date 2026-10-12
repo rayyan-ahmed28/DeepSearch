@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableConfig
 
 from app.graph.context import RunContext, get_ctx
 from app.models.llm_outputs import FinancePlan, ReportDraft
-from app.models.schemas import Domain, ExecutionStatus, ResearchState
+from app.models.schemas import ExecutionStatus, ResearchState
 from app.providers import prompts
 from app.utils.report_builder import build_report
 
@@ -23,9 +23,10 @@ def _gaps(state: ResearchState, ctx: RunContext) -> list[str]:
         if ctx.scenario.prices is not None:
             gaps.append("Share prices are split-adjusted closes, so they will not match prices quoted in news from the time; percentage moves are unaffected.")
     else:
-        if Domain.LEGAL in state.detected_domains:
-            gaps.append("Legal research (court records, regulators, case status) is not built yet in this version.")
-        gaps.append("Web and news sources are not searched yet, and claims are not yet extracted or verified.")
+        gaps.append(
+            "Claims are not yet extracted from the sources or verified in live runs, so the report cites what was "
+            "found without stating what it establishes."
+        )
     for error in state.errors:
         worker, _, detail = error.partition(": ")
         gaps.append(f"The {worker.replace('_', ' ')} step did not complete: {detail}.")
@@ -48,7 +49,10 @@ async def report_architect_node(state: ResearchState, config: RunnableConfig) ->
         "period_start": prices[0].date.isoformat() if prices else None,
         "period_end": prices[-1].date.isoformat() if prices else None,
         "calculations": [c.model_dump(mode="json") for c in state.calculations],
-        "sources": [{"id": s.id, "title": s.title, "source_type": s.source_type.value} for s in state.sources],
+        "sources": [
+            {"id": s.id, "title": s.title, "source_type": s.source_type.value, "retrieved_by": s.retrieved_by}
+            for s in state.sources
+        ],
     }
     draft = await ctx.ask(
         "report_architect", "report", "Writing the report from stored calculations",

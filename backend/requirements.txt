@@ -34,6 +34,8 @@ yfinance>=0.2.40
 pandas>=2.0.0
 numpy>=2.0.0
 requests>=2.31.0
+# Keyless web search fallback (D2); the maintained successor of duckduckgo_search.
+ddgs>=9.0
 
 # ── Dev / test ───────────────────────────────────────────────────
 pytest>=8.0.0

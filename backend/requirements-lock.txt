@@ -1,4 +1,4 @@
-# Exact versions from a working install on Windows 11 / Python 3.12 (2026-10-12),
+# Exact versions from a working install on Windows 11 / Python 3.12 (2026-10-13),
 # with Smart App Control on. Install with:  pip install -r requirements-lock.txt
 # requirements.txt holds the loose ranges; regenerate this file with pip freeze
 # after changing it. Windows-only packages are marked so Linux/WSL installs skip them.
@@ -32,6 +32,7 @@ cssselect2==0.10.1
 curl_cffi==0.16.3
 cymem==2.0.13
 dataclasses-json==0.6.7
+ddgs==9.16.0
 defusedxml==0.7.1
 distro==1.9.0
 docopt==0.6.2

@@ -7,13 +7,13 @@ from starlette.websockets import WebSocketDisconnect
 from app.config import Settings
 from app.main import create_app
 from app.providers.fake import FakeLLMProvider
-from tests.fixtures import FixturePrices
+from tests.fixtures import FixturePrices, offline_live
 
 
 @pytest.fixture
 def client():
     settings = Settings(gemini_api_key="", tavily_api_key="secret-tavily-value", demo_pace_seconds=0)
-    app = create_app(settings, llm=FakeLLMProvider(), prices=FixturePrices())
+    app = create_app(settings, llm=FakeLLMProvider(), prices=FixturePrices(), live=offline_live())
     with TestClient(app) as c:
         yield c
 

@@ -12,7 +12,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from app.models.llm_outputs import DraftParagraph, DraftSection, FinancePlan, ReportDraft, RouterDecision
+from app.models.llm_outputs import DraftParagraph, DraftSection, FinancePlan, LegalPlan, ReportDraft, RouterDecision
 from app.models.schemas import Domain
 from app.providers.base import LLMError
 
@@ -21,7 +21,8 @@ T = TypeVar("T", bound=BaseModel)
 LEGAL_TERMS = (
     "lawsuit", "suit", "sued", "court", "case", "litigation", "legal", "antitrust", "regulator",
     "settlement", "ruling", "judge", "complaint", "verdict", "fine", "injunction", "docket",
-    "allegation", "alleged", "charged", "sec action", "doj", "ftc",
+    "allegation", "alleged", "charged", "sec action", "doj", "ftc", "fraud", "securities fraud", "patent",
+    "bankruptcy", "appeal",
 )
 FINANCE_TERMS = (
     "stock", "share", "price", "market", "earnings", "revenue", "return", "valuation", "investor",
@@ -89,6 +90,7 @@ class FakeLLMProvider:
     async def generate(self, purpose: str, prompt: str, schema: type[T], context: dict[str, Any]) -> T:
         handler = {
             "route": self._route,
+            "plan_legal": self._plan_legal,
             "plan_finance": self._plan_finance,
             "report": self._report,
         }.get(purpose)
@@ -120,13 +122,31 @@ class FakeLLMProvider:
             rationale=f"Keyword rules (no Gemini key): matched {found}.",
         )
 
+    def _plan_legal(self, ctx: dict[str, Any]) -> LegalPlan:
+        query = ctx["query"]
+        case_name = find_case_name(query)
+        court_query = legal_keywords(query)  # parties plus the subject: a case name alone matches thousands of warrants
+        searches = list(dict.fromkeys([query.strip().rstrip("?"), f"{court_query} court ruling"]))
+        return LegalPlan(
+            case_name=case_name,
+            court_query=court_query,
+            search_queries=searches,
+            tasks=[
+                f"Search federal court dockets for '{court_query}'",
+                "Search official sites and reputable news for the latest developments",
+                "Collect dated sources for a case timeline",
+            ],
+            rationale=(f"Identified the case {case_name}." if case_name else f"No case name given; searching for '{court_query}'."),
+        )
+
     def _plan_finance(self, ctx: dict[str, Any]) -> FinancePlan:
         company, ticker = find_ticker(ctx["query"])
         period = find_period(ctx["query"]) or ctx["period"]
         if ticker:
             tasks = [
                 f"Fetch daily price history for {ticker} ({PERIOD_LABEL[period]})",
-                "Compute period return, volatility and maximum drawdown with pandas",
+                "Pull the company's recent SEC filings",
+                "Compute period return, volatility, maximum drawdown and moves around results filings with pandas",
                 "Prepare a price chart",
             ]
             rationale = f"Identified {company or ticker} ({ticker}) in the query."
@@ -138,31 +158,98 @@ class FakeLLMProvider:
     def _report(self, ctx: dict[str, Any]) -> ReportDraft:
         ticker = ctx.get("ticker")
         name = ctx.get("company") or ticker
-        calc_ids = {c["id"] for c in ctx.get("calculations", [])}
-        cite = [s["id"] for s in ctx.get("sources", [])]  # the stand-in relies on everything retrieved
+        domains = ctx.get("domains", [])
+        calc_ids = [c["id"] for c in ctx.get("calculations", [])]
+        sources = ctx.get("sources", [])
+        finance_cite = [s["id"] for s in sources if s.get("retrieved_by") == "financial_data"]
+        court_cite = [s["id"] for s in sources if s.get("retrieved_by") == "legal_records"]
+        web_cite = [s["id"] for s in sources if s.get("retrieved_by") == "web_research"]
 
-        def para(text: str) -> DraftParagraph:
-            return DraftParagraph(text=text, source_ids=cite)
+        summary: list[DraftParagraph] = []
+        sections: list[DraftSection] = []
 
-        if ticker and "ret_period" in calc_ids:
-            sections = [
-                DraftSection(kind="executive_summary", heading="Executive summary", paragraphs=[para(
-                    f"{name} ({ticker}) returned {{{{calc:ret_period}}}} between {ctx['period_start']} and "
-                    f"{ctx['period_end']}, measured from daily closing prices."
-                )]),
-                DraftSection(kind="market_reaction", heading="Market behaviour", paragraphs=[
-                    para("Annualised volatility of daily returns was {{calc:vol_annual}}."),
-                    para("The largest peak-to-trough fall in the period (maximum drawdown) was {{calc:dd_max}}."),
-                    para("Prices are split-adjusted daily closes; every figure was computed in code from that series."),
-                ]),
-            ]
-        elif "finance" in ctx.get("domains", []):
-            sections = [DraftSection(kind="executive_summary", heading="Executive summary", paragraphs=[DraftParagraph(
-                text="No price data was available for this query, so the report contains no figures."
-            )])]
+        if "finance" in domains:
+            if ticker and "ret_period" in calc_ids:
+                summary.append(DraftParagraph(
+                    text=f"{name} ({ticker}) returned {{{{calc:ret_period}}}} between {ctx['period_start']} and "
+                    f"{ctx['period_end']}, measured from daily closing prices.",
+                    source_ids=finance_cite,
+                ))
+                market = [
+                    DraftParagraph(text="Annualised volatility of daily returns was {{calc:vol_annual}}.", source_ids=finance_cite),
+                    DraftParagraph(text="The largest peak-to-trough fall in the period (maximum drawdown) was {{calc:dd_max}}.", source_ids=finance_cite),
+                ]
+                for calc_id in calc_ids:
+                    if calc_id.startswith("ret_results_"):
+                        day = _iso_to_words(calc_id.removeprefix("ret_results_"))
+                        market.append(DraftParagraph(
+                            text=f"Across the company's results filing of {day}, shares returned {{{{calc:{calc_id}}}}}.",
+                            source_ids=finance_cite,
+                        ))
+                market.append(DraftParagraph(text="Prices are split-adjusted daily closes; every figure was computed in code from that series.", source_ids=finance_cite))
+                sections.append(DraftSection(kind="market_reaction", heading="Market behaviour", paragraphs=market))
+            else:
+                summary.append(DraftParagraph(text="No price data was available for this query, so the report contains no figures."))
+
+        if "legal" in domains:
+            if court_cite:
+                summary.append(DraftParagraph(
+                    text="Federal court dockets matching the question were found; the case overview cites them.",
+                    source_ids=court_cite[:3],
+                ))
+                overview = DraftParagraph(
+                    text="These dockets come from CourtListener's archive of federal court records. They show that the cases exist and when they were filed; this run has not yet read the filings themselves.",
+                    source_ids=court_cite[:5],
+                )
+            else:
+                summary.append(DraftParagraph(text="No matching federal court docket was found, so no primary court record is cited."))
+                overview = DraftParagraph(text="No primary court record was found for this question; the report does not invent one.")
+            sections.append(DraftSection(kind="case_overview", heading="Case overview", paragraphs=[overview]))
+            if web_cite:
+                sections.append(DraftSection(kind="legal_developments", heading="Latest developments", paragraphs=[DraftParagraph(
+                    text="Official and news sources about the matter are cited here. Their claims have not yet been extracted or verified, so this report does not state what they establish.",
+                    source_ids=web_cite[:6],
+                )]))
+
+        sections.insert(0, DraftSection(kind="executive_summary", heading="Executive summary", paragraphs=summary or [
+            DraftParagraph(text="No sources were found for this question.")
+        ]))
+        if ticker and "finance" in domains:
+            title = f"{name}: price performance over the last {PERIOD_LABEL.get(ctx.get('period') or '', 'period')}"
         else:
-            sections = [DraftSection(kind="executive_summary", heading="Executive summary", paragraphs=[DraftParagraph(
-                text="This question is legal-only. Legal research is not built yet in this version, so there are no findings to report."
-            )])]
-        title = f"{name}: price performance over the last {PERIOD_LABEL.get(ctx.get('period') or '', 'period')}" if ticker else "Research summary"
+            title = "Research summary"
         return ReportDraft(title=title, sections=sections)
+
+
+MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+
+def _iso_to_words(yyyymmdd: str) -> str:
+    """'20260722' -> '22 July 2026' (a date format the number audit allows)."""
+    return f"{int(yyyymmdd[6:8])} {MONTH_NAMES[int(yyyymmdd[4:6]) - 1]} {yyyymmdd[:4]}"
+
+
+CASE_NAME = re.compile(
+    r"\b((?:[A-Z][\w.&'-]*|of|the)(?:\s+(?:[A-Z][\w.&'-]*|of|the|LLC|Inc\.?))*)\s+(?:v\.|vs\.?|v)\s+((?:[A-Z][\w.&'-]*)(?:\s+(?:[A-Z][\w.&'-]*|LLC|Inc\.?))*)"
+)
+QUESTION_WORDS = {"What", "How", "Why", "When", "Where", "Which", "Who", "Is", "Are", "Did", "Does", "Do", "Can", "Research", "The", "A", "An", "Tell", "Give", "Show", "Find", "Latest"}
+
+
+def find_case_name(query: str) -> str | None:
+    m = CASE_NAME.search(query)
+    if not m:
+        return None
+    words = m.group(1).split()
+    while words and (words[0][0].islower() or words[0] in QUESTION_WORDS):
+        words.pop(0)  # "of United States" -> "United States"
+    left = " ".join(words)
+    return f"{left} v. {m.group(2)}" if left else None
+
+
+def legal_keywords(query: str) -> str:
+    """Proper nouns plus legal terms, e.g. 'the antitrust case against Google' -> 'Google antitrust'."""
+    cleaned = [w.strip("?.,\"").removesuffix("'s").strip("'") for w in query.split()]
+    names = [w for w in cleaned if w[:1].isupper() and w not in QUESTION_WORDS]
+    terms = [t for t in _matches(query, LEGAL_TERMS) if t not in {"case", "legal"}]
+    words = list(dict.fromkeys(" ".join(names + terms).split()))  # "fraud" + "securities fraud" -> no repeats
+    return " ".join(words) or query.strip().rstrip("?")

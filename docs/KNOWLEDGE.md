@@ -102,9 +102,9 @@ Opinion blogs, social media and random sites are never treated as authoritative 
 Strategic brain for financial research. Identifies the company/security, builds a financial research plan, decides what data and news to retrieve, requests calculations and charts, interprets results, and coordinates with the Legal Manager when legal events are involved. **It never computes or invents numbers.** Its one LLM call is the plan; numbers are interpreted only by the Report Architect, from stored calculations.
 
 ### Shared Workers (all deterministic, none call an LLM)
-- **Web Research Worker:** searches the web and collects sources. Backed by GPT Researcher used narrowly (see section 10), Tavily as the primary search tool, keyless DuckDuckGo as the fallback.
-- **Legal Records Worker:** CourtListener API for court records. If nothing is found it reports "no primary court record found" and does not invent a case.
-- **Financial Data Worker:** `yfinance` for price history, SEC EDGAR for filings.
+- **Web Research Worker** (`workers/web_search.py`, live since Phase 5): one interface, three back ends chosen by configuration: GPT Researcher used narrowly when Gemini is configured (1 LLM call per query, counted), Tavily's REST API when `TAVILY_API_KEY` is set, otherwise keyless DuckDuckGo (the `ddgs` package; it rate-limits heavy use, so a free Tavily key is recommended). Every result is classified by domain (`workers/source_types.py`): court domains → official court, `.gov` → regulatory, an allowlist of outlets → reputable news, social media → rejected, everything else → secondary. Search excerpts are kept as short snippets (≤220 characters); dates come from the search engine when it has them.
+- **Legal Records Worker** (`workers/court_records.py`, live since Phase 5): CourtListener v4 docket search, works without a token at a low rate limit. Magistrate, warrant and miscellaneous dockets (`-mj-`, `-sw-`, `-mc-`, …) are filtered out, since they otherwise crowd out the real cases, and duplicate entries are merged. The Legal Manager's court query is party names plus the subject (e.g. "United States Google LLC antitrust"), because a case name alone matches thousands of warrant dockets. If nothing is found it reports "no primary court record found" and does not invent a case.
+- **Financial Data Worker:** `yfinance` for price history; SEC EDGAR (`workers/edgar.py`, live since Phase 5, needs `SEC_EDGAR_USER_AGENT` with the user's own contact address) for the company's 8-K, 10-Q and 10-K filings in the price period. Each results 8-K (item 2.02) becomes an event window, so finance questions get the share-price move around every results report without an LLM.
 - **Data Analysis Worker:** pandas/numpy for percentage change, returns, event-window returns, volatility, optional index comparison. Every output is a `Calculation` with its method recorded.
 - **Chart preparation:** turns calculations into Recharts-ready JSON (`ChartSpec`). No server-side images.
 - **Document Research Worker (optional):** processes PDFs/filings. Likely cut if time is short.
@@ -233,6 +233,9 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D26 | If Gemini fails (quota, outage, bad JSON), the call falls back to the rule-based stand-in for that step; the failed call still counts against the budget and the activity feed says so | One failed call never kills a run (D12), and the fallback is visible |
 | D28 | Export = Markdown download plus browser print-to-PDF (print styles switch to black on white) | Closes the export open item at ₹0 with no server-side PDF library |
 | D29 | The Finance Manager uses the time frame the question names ("last year", "three months"); the depth setting is only the default | A question about "the last year" must not get six months of data |
+| D33 | Court searches filter procedural dockets and use "parties + subject" queries | Live tests showed a case name alone returned only warrant and miscellaneous dockets; with the filter and subject the main case and its appeals come first |
+| D34 | Keyless web search uses `ddgs`, the maintained successor of `duckduckgo_search` | The old package was rate-limited and deprecated; `ddgs` returned results in live tests |
+| D35 | Results 8-K filings from EDGAR become event windows automatically | Gives finance questions dated drivers without spending LLM calls |
 | D30 | The full graph shape and the deterministic verification rules were built in Phase 4 (pulled forward from Phases 5–6) | A recorded run must replay through the real pipeline, and statuses must be computed at replay time rather than copied from a file |
 | D31 | A figure computed in code from the cited price data counts as verified | It is checked against its data by construction; "corroborated" would wrongly imply two agreeing sources |
 | D32 | Recorded scenarios never fall back to the fictional sample: if the backend is down, the Dashboard says so and how to start it | A replay must never be mistaken for real recorded research |
@@ -409,7 +412,9 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 
 **Phase 4 (done): recorded scenarios through the full graph, 64 passing tests.** Full graph shape (section 5); `graph/nodes/legal.py` (Legal Manager, Legal Records, Web Research: recorded replay, "not built yet" live); `graph/nodes/verification.py` with the rules engine `workers/verification.py`; event-window returns in `workers/analysis.py` (`EventWindow` in the Finance plan: close on the last trading day before an event to the first after it); `demo/scenarios.py` (scenario model, loader, `RecordedLLMProvider`, `SnapshotPriceSource`); `scripts/snapshot_prices.py`; tests `test_scenarios.py` and `test_verification_rules.py`.
 
-**Not started (live):** Legal Manager and Legal Records against CourtListener, Web Research via GPT Researcher, EDGAR fetching, live claim extraction (the rules already run), persistence, rate limiting, live smoke script.
+**Phase 5 (done): live legal side, 90 passing tests.** Legal Manager plans live (Gemini or the stand-in: case name, court query, web queries); Legal Records searches CourtListener; Web Research uses GPT Researcher, Tavily or DuckDuckGo; EDGAR filings and results-filing event windows in Financial Data. Each worker gets two attempts and reports failures without crashing the run; missing services are reported, never faked. Clients take an injectable HTTP transport, and `tests/test_live_workers.py` covers parsing, errors, classification and filters with recorded-style responses; `tests/fixtures.py` has offline fakes so no test touches the network. Live smoke on 2026-10-13 (no keys): the Google search case query found 1:20-cv-03010 (D.D.C.) and the D.C. Circuit appeals 26-5023/26-5049; web research returned classified news; EDGAR listed Tesla's filings and four results reports.
+
+**Not started (live):** claim extraction from live sources (the rules already run on recorded runs), Gemini end to end, persistence, rate limiting, live smoke script.
 
 **Planned structure:** `app/main.py`, `config.py`, `api/` (routes and WebSocket), `graph/` (state, build_graph, `nodes/`), `workers/`, `providers/` (base, gemini, fake, openai stub), `demo/` (scenarios and replay runner), `models/schemas.py`, `db/`, `utils/` (logger, events). Keep the folder structure simple enough for students to explain in a viva.
 
@@ -430,7 +435,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Research Workspace | Done (Phase 1) |
 | Report contract and Final Report screen | Done (Phase 3) |
 | Settings, Landing | Not built (stubs) |
-| Backend | Full graph shape, finance path live, legal path and verification on recorded scenarios (Phase 4), 64 tests |
+| Backend | Full graph; finance and legal paths live (Phase 5); claim extraction and verification on recorded scenarios; 90 tests |
 | Demo scenarios | Three recorded runs with checked sources and real price snapshots, data as of 12 Oct 2026; Dashboard "Demo scenarios" section (Phase 4) |
 
 **Remaining work, in order (reordered 2026-10-12 so the riskiest integration happens early):**
@@ -438,7 +443,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 2. ~~Backend foundation plus one thin end-to-end slice~~ Done 2026-10-12: config, `LLMProvider` with the call counter, event bus with backlog replay, REST + WebSocket, and Router → Finance Manager → Financial Data → Data Analysis → a minimal Report, streamed into the existing Execution screen.
 3. ~~Report contract as a Pydantic model (with D20 placeholders), then the Final Report screen and citation panel.~~ Done 2026-10-12.
 4. ~~Demo scenarios as recorded runs (D21), with real, dated data.~~ Done 2026-10-12, together with the full graph shape and the verification rules (D30).
-5. Live Legal Manager and workers: Legal Records (CourtListener), Web Research via GPT Researcher, EDGAR. The nodes already exist; this replaces their "not built yet" live branch.
+5. ~~Live Legal Manager and workers: Legal Records (CourtListener), Web Research, EDGAR.~~ Done 2026-10-13.
 6. Live claim extraction for Verification (the rules are done), Gemini end-to-end, and the live smoke script.
 7. Persistence (history, saved reports) and full integration.
 8. Landing and Settings.
@@ -518,6 +523,7 @@ Still to review when built: Landing (counters like "100% auditable"), Settings (
 ## 19. Open items
 
 - **Rotate** the xAI, Tavily and LangChain keys that were pasted into an earlier chat session.
+- Optional, free, makes live research reliable: a Tavily API key, a CourtListener token, and `SEC_EDGAR_USER_AGENT` with your own email, all in `backend/.env`.
 - Shortly before the viva, refresh the scenarios: re-run `scripts/snapshot_prices.py` for `tesla_recent_performance`, re-check the Google docket for newer entries (an appeal argument may be scheduled), update `data_as_of`, then run the tests.
 - Check in AI Studio which Gemini models this project's free tier allows, and its daily limit.
 - Run the live smoke script with real keys once it exists (Phase 6; this machine can reach every service).

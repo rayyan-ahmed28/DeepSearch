@@ -8,16 +8,20 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from dataclasses import dataclass
 
 from app.config import Settings
 from app.demo.scenarios import RecordedLLMProvider, Scenario, SnapshotPriceSource, load_scenarios
 from app.graph.build_graph import build_graph
-from app.graph.context import RunContext
+from app.graph.context import LiveWorkers, RunContext
 from app.models.schemas import ExecutionStatus, ResearchRequest, ResearchState
 from app.providers import BudgetExceeded, CallCounter, FakeLLMProvider, LLMProvider, build_provider
 from app.utils.events import EventBus
+from app.workers.court_records import CourtListenerRecords
+from app.workers.edgar import EdgarFilings
 from app.workers.market_data import PriceSource, YahooPriceSource
+from app.workers.web_search import DuckDuckGoSearch, GPTResearcherSearch, TavilySearch, WebSearch
 
 logger = logging.getLogger("deepsearch.runs")
 
@@ -36,12 +40,34 @@ class Run:
     task: asyncio.Task | None = None
 
 
+def build_live_workers(settings: Settings) -> LiveWorkers:
+    """Use what is configured: GPT Researcher needs Gemini; Tavily needs a key; DuckDuckGo needs nothing."""
+    web: WebSearch
+    if settings.effective_llm == "gemini":
+        # GPT Researcher reads its retriever from the environment; without a Tavily key use DuckDuckGo.
+        os.environ.setdefault("RETRIEVER", "tavily" if settings.tavily_api_key else "duckduckgo")
+        web = GPTResearcherSearch()
+    elif settings.tavily_api_key:
+        web = TavilySearch(settings.tavily_api_key)
+    else:
+        web = DuckDuckGoSearch()
+    filings = EdgarFilings(settings.sec_edgar_user_agent) if settings.sec_edgar_user_agent else None
+    return LiveWorkers(courts=CourtListenerRecords(settings.courtlistener_api_token), web=web, filings=filings)
+
+
 class RunRegistry:
-    def __init__(self, settings: Settings, llm: LLMProvider | None = None, prices: PriceSource | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        llm: LLMProvider | None = None,
+        prices: PriceSource | None = None,
+        live: LiveWorkers | None = None,
+    ) -> None:
         self.settings = settings
         self.llm = llm or build_provider(settings)
         self.fallback_llm = FakeLLMProvider()
         self.prices = prices or YahooPriceSource()
+        self.live = live if live is not None else build_live_workers(settings)
         self.graph = build_graph()
         self.scenarios = load_scenarios()
         self.runs: dict[str, Run] = {}
@@ -77,6 +103,7 @@ class RunRegistry:
             fallback_llm=self.fallback_llm,
             counter=CallCounter(self.settings.llm_call_budget),
             prices=SnapshotPriceSource(scenario.prices) if scenario and scenario.prices else self.prices,
+            live=LiveWorkers() if scenario else self.live,  # recordings never call live services
             scenario=scenario,
             pace=self.settings.demo_pace_seconds if scenario else 0.0,
         )

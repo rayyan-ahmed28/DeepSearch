@@ -11,7 +11,10 @@ from pydantic import BaseModel
 
 from app.providers.base import CallCounter, LLMError, LLMProvider
 from app.utils.events import EventBus
+from app.workers.court_records import CourtRecords
+from app.workers.edgar import Filings
 from app.workers.market_data import PriceSource
+from app.workers.web_search import WebSearch
 
 if TYPE_CHECKING:
     from app.demo.scenarios import Scenario
@@ -26,6 +29,15 @@ LLM_LABEL = {
 
 
 @dataclass
+class LiveWorkers:
+    """External services for live runs; None means not available (the worker says so)."""
+
+    courts: CourtRecords | None = None
+    web: WebSearch | None = None
+    filings: Filings | None = None
+
+
+@dataclass
 class RunContext:
     research_id: str
     bus: EventBus
@@ -33,6 +45,7 @@ class RunContext:
     fallback_llm: LLMProvider  # the rule-based stand-in
     counter: CallCounter
     prices: PriceSource
+    live: LiveWorkers = field(default_factory=LiveWorkers)
     scenario: Scenario | None = None  # set for recorded demo runs (D21)
     pace: float = 0.0  # seconds per step when replaying a recording, so the run is watchable
     running: set[str] = field(default_factory=set)

@@ -27,6 +27,8 @@ class LegalPlan(BaseModel):
     """Legal Manager: what to look for. It never states findings."""
 
     case_name: Optional[str] = None
+    court_query: Optional[str] = None  # what Legal Records searches CourtListener for
+    search_queries: list[str] = Field(default_factory=list)  # what Web Research searches for
     tasks: list[str]
     rationale: str
 

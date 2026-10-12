@@ -36,8 +36,11 @@ def plan_finance(query: str, period: str) -> str:
 def plan_legal(query: str) -> str:
     return (
         "You are the Legal Manager of DeepSearch. Identify the case or regulatory matter the question is "
-        "about and list 2-4 short research tasks for workers (court records, regulator releases, reputable "
-        "news, a dated timeline). Prefer official court and regulatory sources. Do not state findings.\n"
+        "about (case_name, e.g. 'United States v. Google LLC', or null). Give court_query: a short keyword "
+        "query for a federal court docket search: party names plus the subject, e.g. 'United States Google LLC "
+        "antitrust' (no question words; a case name alone also matches unrelated warrant dockets). Give 1-3 search_queries "
+        "for web research aimed at official sites and reputable news. List 2-4 short research tasks. Prefer "
+        "official court and regulatory sources. Do not state findings.\n"
         f"{GUARDRAILS}\n\nQuestion: {query}"
     )
 

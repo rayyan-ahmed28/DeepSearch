@@ -12,7 +12,7 @@ import re
 from langchain_core.runnables import RunnableConfig
 
 from app.graph.context import get_ctx
-from app.models.llm_outputs import FinancePlan
+from app.models.llm_outputs import EventWindow, FinancePlan
 from app.models.schemas import Domain, ResearchState, Task, TaskStatus
 from app.providers import prompts
 from app.workers.analysis import analyse_prices
@@ -87,14 +87,30 @@ async def financial_data_node(state: ResearchState, config: RunnableConfig) -> d
         return {"tasks": [failed], "errors": [f"financial_data: {last_error}"]}
 
     sources = [ctx.prices.source_for(plan.ticker, points)]
+    ctx.log("financial_data", f"Price history loaded: {len(points)} trading days ({points[0].date} to {points[-1].date})")
+    errors: list[str] = []
+    filing_events: list[EventWindow] = []
     if ctx.scenario is not None:  # filings this worker retrieved when the scenario was recorded
         sources += [s for s in ctx.scenario.sources if s.retrieved_by == "financial_data"]
+    elif ctx.live.filings is not None:
+        try:
+            filings, filing_events = await ctx.live.filings.recent(plan.ticker, points[0].date, points[-1].date, limit=10)
+            sources += filings
+            ctx.log("financial_data", f"{len(filings)} SEC filing(s) in the period from {ctx.live.filings.name}"
+                    + (f", including {len(filing_events)} results report(s)" if filing_events else ""))
+        except Exception as exc:  # D12: filings are a bonus; prices still count
+            ctx.log("financial_data", f"SEC filings unavailable: {exc}", level="warn")
+            errors.append(f"sec_filings: {exc}")
+    else:
+        ctx.log("financial_data", "SEC filings skipped: set SEC_EDGAR_USER_AGENT (with a contact email) to enable EDGAR")
     for source in sources:
         ctx.publish("source_found", source.model_dump(mode="json"))
-    ctx.log("financial_data", f"Price history loaded: {len(points)} trading days ({points[0].date} to {points[-1].date})")
     ctx.status("financial_data", "done")
     done = task.model_copy(update={"status": TaskStatus.DONE})
-    return {"financial_data": points, "sources": sources, "tasks": [done]}
+    update: dict = {"financial_data": points, "sources": sources, "tasks": [done], "errors": errors}
+    if filing_events:
+        update["research_plan"] = {"filing_events": [e.model_dump(mode="json") for e in filing_events]}
+    return update
 
 
 async def data_analysis_node(state: ResearchState, config: RunnableConfig) -> dict:
@@ -109,13 +125,16 @@ async def data_analysis_node(state: ResearchState, config: RunnableConfig) -> di
 
     ctx.status("calculator", "running", "Computing returns")
     await ctx.pause()
-    calculations, chart = analyse_prices(state.financial_data, plan.events)
+    filing_events = [EventWindow.model_validate(e) for e in state.research_plan.get("filing_events", [])]
+    known = {e.date for e in plan.events}
+    events = [*plan.events, *(e for e in filing_events if e.date not in known)]
+    calculations, chart = analyse_prices(state.financial_data, events)
     for calc in calculations:
         ctx.publish("calculation_ready", calc.model_dump(mode="json"))
     windows = len(calculations) - 3
     extra = f", plus {windows} event-window return(s)" if windows else ""
     ctx.log("calculator", f"Computed period return, volatility and maximum drawdown with pandas{extra}")
-    for event in plan.events:
+    for event in plan.events:  # results filings at the edge of the period are simply not measured
         if not any(c.id == f"ret_{event.id}" for c in calculations):
             ctx.log("calculator", f"No price data around {event.label} ({event.date}); window skipped", level="warn")
     ctx.publish("chart_ready", chart.model_dump(mode="json"))

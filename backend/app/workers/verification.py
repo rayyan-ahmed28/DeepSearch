@@ -17,20 +17,17 @@ allegation can never slip through as fact.
 
 from __future__ import annotations
 
-from urllib.parse import urlparse
-
 from app.models.llm_outputs import ExtractedClaim
 from app.models.schemas import Calculation, Claim, ClaimType, Source, SourceType, VerificationStatus
 from app.utils.placeholders import RenderAudit, render
+from app.workers.source_types import registrable_domain
 
 OFFICIAL = {SourceType.OFFICIAL_COURT, SourceType.REGULATORY}
 
 
 def source_domain(url: str) -> str:
-    """Registrable-ish domain used to judge independence: www.sec.gov -> sec.gov."""
-    host = (urlparse(url).hostname or "").lower()
-    parts = host.removeprefix("www.").split(".")
-    return ".".join(parts[-2:]) if len(parts) >= 2 else host
+    """Domain used to judge independence: www.sec.gov -> sec.gov, news.bbc.co.uk -> bbc.co.uk."""
+    return registrable_domain(url)
 
 
 def status_for(claim_type: ClaimType, sources: list[Source], has_calculation: bool) -> VerificationStatus:

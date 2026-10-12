@@ -17,6 +17,7 @@ from app.models.schemas import Domain, ExecutionStatus, ResearchRequest
 from app.runs import RunRegistry
 from app.utils.placeholders import PLACEHOLDER, RenderAudit, render
 from app.workers.analysis import analyse_prices
+from tests.fixtures import offline_live
 
 SCENARIOS = load_scenarios()
 WORKER_DOMAIN = {"legal_records": Domain.LEGAL, "financial_data": Domain.FINANCE, "web_research": None}
@@ -73,7 +74,7 @@ def test_scenario_is_internally_consistent(scenario):
 
 def replay(scenario_id: str):
     async def scenario():
-        registry = RunRegistry(Settings(demo_pace_seconds=0))
+        registry = RunRegistry(Settings(demo_pace_seconds=0), live=offline_live())
         run = registry.start(ResearchRequest(query="ignored", scenario_id=scenario_id))
         await run.task
         return run
@@ -133,7 +134,7 @@ def test_scenario_replays_through_the_live_graph(scenario_id):
 
 def test_unknown_scenario_is_rejected():
     async def scenario():
-        RunRegistry(Settings(demo_pace_seconds=0)).start(ResearchRequest(query="x", scenario_id="nope"))
+        RunRegistry(Settings(demo_pace_seconds=0), live=offline_live()).start(ResearchRequest(query="x", scenario_id="nope"))
 
     with pytest.raises(KeyError):
         asyncio.run(scenario())
