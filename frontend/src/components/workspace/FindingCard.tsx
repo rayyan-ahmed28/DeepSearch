@@ -60,7 +60,7 @@ export default function FindingCard({ claim, sourcesById, citationNumber, select
       {claim.value != null && (
         <div className="p-2.5 rounded-lg bg-surface-container border-l-2 border-primary-container flex items-center gap-2">
           <Calculator size={14} className="text-primary shrink-0" />
-          <span className="font-label-code-sm text-label-code-sm text-on-surface">{formatClaimValue(claim.value, claim.unit)}</span>
+          <span className="font-label-code-sm text-label-code-sm text-on-surface">{formatClaimValue(claim.value, claim.unit, claim.calculation_id)}</span>
           <span className="font-body-sm text-body-sm text-outline">
             {claim.unit === "%" ? "computed in code from the price series" : "as reported in the cited source"}
           </span>

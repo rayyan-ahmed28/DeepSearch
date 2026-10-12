@@ -15,6 +15,7 @@ const STATUS: Record<HistoryEntry["status"], { label: string; className: string 
   completed: { label: "Completed", className: "text-tertiary" },
   running: { label: "In progress", className: "text-primary" },
   failed: { label: "Failed", className: "text-error" },
+  stopped: { label: "Stopped by you", className: "text-warning" },
   interrupted: { label: "Stopped: server restarted", className: "text-error" },
 };
 
@@ -57,7 +58,7 @@ export default function ResearchHistoryPage() {
 
   return (
     <AppShell breadcrumb={view === "saved" ? "CORE://HISTORY/SAVED" : "CORE://HISTORY"}>
-      <div className="w-full max-w-[1100px] mx-auto px-8 py-10 flex flex-col gap-6">
+      <div className="w-full max-w-[1100px] mx-auto px-4 sm:px-8 py-10 flex flex-col gap-6">
         <header className="flex flex-col gap-4 pb-4 border-b border-outline-variant/20">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="flex flex-col gap-1">

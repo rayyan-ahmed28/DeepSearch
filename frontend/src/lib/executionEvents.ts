@@ -63,6 +63,8 @@ export interface ClaimPayload {
   event_date?: string | null;
   value?: number | null;
   unit?: string | null;
+  /** The stored calculation the value came from (e.g. "ret_period", "vol_annual"). */
+  calculation_id?: string | null;
 }
 
 /** Mirrors backend `ChartSpec`: Recharts-ready records. */

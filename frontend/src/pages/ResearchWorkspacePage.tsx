@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FileText, Network } from "lucide-react";
 
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import AppShell from "@/components/layout/AppShell";
+import RunLoading from "@/components/common/RunLoading";
 import RunNotFound from "@/components/common/RunNotFound";
 import RunErrorBanner from "@/components/common/RunErrorBanner";
 import AgentPanel from "@/components/workspace/AgentPanel";
@@ -36,7 +38,7 @@ export default function ResearchWorkspacePage() {
       </AppShell>
     );
   }
-  if (!run) return <AppShell breadcrumb={breadcrumb}>{null}</AppShell>;
+  if (!run) return <AppShell breadcrumb={breadcrumb}><RunLoading id={id} /></AppShell>;
   return (
     <AppShell breadcrumb={breadcrumb}>
       <WorkspaceView id={id} />
@@ -90,7 +92,7 @@ function WorkspaceView({ id }: { id: string }) {
   return (
     <div className="flex flex-col w-full">
       {/* Query and status bar */}
-      <header className="bg-surface-container-lowest border-b border-outline-variant/30 px-8 py-4">
+      <header className="bg-surface-container-lowest border-b border-outline-variant/30 px-4 sm:px-8 py-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -226,16 +228,14 @@ function WorkspaceView({ id }: { id: string }) {
 
           {showChart &&
             state.charts.map((chart) => (
-              <PriceChartCard
-                key={chart.id}
-                chart={chart}
-                markers={state.timeline}
-                calculations={state.calculations}
-                caption={chartCaption}
-              />
+              <ErrorBoundary key={chart.id} inline label="the price chart">
+                <PriceChartCard chart={chart} markers={state.timeline} calculations={state.calculations} caption={chartCaption} />
+              </ErrorBoundary>
             ))}
           {showTimeline && state.timeline.length > 0 && (
-            <TimelineCard events={state.timeline} citationNumber={citationNumber} onSelectSource={toggleSource} />
+            <ErrorBoundary inline label="the timeline">
+              <TimelineCard events={state.timeline} citationNumber={citationNumber} onSelectSource={toggleSource} />
+            </ErrorBoundary>
           )}
         </section>
 

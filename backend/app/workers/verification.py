@@ -91,6 +91,7 @@ def verify_claims(
                 event_date=raw.event_date,
                 value=calc.result if calc is not None and isinstance(calc.result, float) else None,
                 unit=calc.unit if calc is not None else None,
+                calculation_id=calc.id if calc is not None else None,
             )
         )
 

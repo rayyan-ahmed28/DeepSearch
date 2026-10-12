@@ -100,6 +100,7 @@ class ExecutionStatus(str, Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    STOPPED = "stopped"  # the user pressed Stop
 
 
 class Source(BaseModel):
@@ -124,6 +125,7 @@ class Claim(BaseModel):
     event_date: Optional[date] = None
     value: Optional[float] = None
     unit: Optional[str] = None  # e.g. "USD", "%", "shares"
+    calculation_id: Optional[str] = None  # the stored calculation the value came from, if any
 
 
 class Task(BaseModel):

@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Calculator, CalendarClock, Download, Gavel, LayoutPanelLeft, Library, LineChart, Loader2, Network, Printer, Star } from "lucide-react";
 
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import AppShell from "@/components/layout/AppShell";
 import RunErrorBanner from "@/components/common/RunErrorBanner";
+import RunLoading from "@/components/common/RunLoading";
 import RunNotFound from "@/components/common/RunNotFound";
 import IntegrityPanel from "@/components/report/IntegrityPanel";
 import ReportBody from "@/components/report/ReportBody";
@@ -18,7 +20,7 @@ export default function ReportPage() {
   const breadcrumb = `CORE://RESEARCH/${id.toUpperCase()}/REPORT`;
   return (
     <AppShell breadcrumb={breadcrumb}>
-      {missing ? <RunNotFound id={id} /> : run ? <ReportView id={id} /> : null}
+      {missing ? <RunNotFound id={id} /> : run ? <ReportView id={id} /> : <RunLoading id={id} />}
     </AppShell>
   );
 }
@@ -30,7 +32,7 @@ function ReportView({ id }: { id: string }) {
 
   if (!report) {
     return (
-      <div className="w-full max-w-xl mx-auto px-8 py-24 flex flex-col items-center text-center gap-4">
+      <div className="w-full max-w-xl mx-auto px-4 sm:px-8 py-24 flex flex-col items-center text-center gap-4">
         {run.state.error ? (
           <>
             <RunErrorBanner message={run.state.error} />
@@ -138,7 +140,7 @@ function ReportDocument({ run, report }: { run: RunRecord; report: Report }) {
     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/40 hover:border-outline text-on-surface font-body-sm text-body-sm transition-colors";
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-8 py-8">
+    <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-8">
       <header className="flex flex-col gap-4 pb-6 border-b border-outline-variant/20">
         <div className="flex flex-wrap items-center gap-2 font-label-code-sm text-label-code-sm">
           <span className="text-primary uppercase tracking-wider">DeepSearch research report</span>
@@ -223,7 +225,9 @@ function ReportDocument({ run, report }: { run: RunRecord; report: Report }) {
           </div>
         </aside>
         <div className="lg:col-span-9 min-w-0">
-          <ReportBody report={report} chartCaption={chartCaption} />
+          <ErrorBoundary inline label="the report body">
+            <ReportBody report={report} chartCaption={chartCaption} />
+          </ErrorBoundary>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { AtSign, Eye, EyeOff, ArrowRight, Terminal, BookOpen, BadgeCheck, Landma
 
 import BrandMark from "@/components/common/BrandMark";
 import AgentNetworkVignette from "@/components/common/AgentNetworkVignette";
+import ModeBadge from "@/components/common/ModeBadge";
 
 const TRUST_BADGES = [
   { icon: BookOpen, label: "Citation-backed", colorClass: "text-primary" },
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [showResetNote, setShowResetNote] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,14 +45,8 @@ export default function LoginPage() {
               </span>
             </div>
           </Link>
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container/60 shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-tertiary" />
-            </span>
-            <span className="font-label-code-sm text-label-code-sm text-on-surface-variant uppercase tracking-wider">
-              Mesh 4.2 · Live
-            </span>
+          <div className="hidden sm:block">
+            <ModeBadge />
           </div>
         </div>
 
@@ -89,7 +85,7 @@ export default function LoginPage() {
             </span>
             <h2 className="font-headline-lg text-headline-lg text-on-surface">Welcome back</h2>
             <p className="font-body-md text-body-md text-on-surface-variant mt-1">
-              Sign in to access your saved research.
+              A demo sign-in: any details work, and your research history stays on this computer.
             </p>
           </div>
 
@@ -141,10 +137,20 @@ export default function LoginPage() {
                 />
                 <span className="font-body-sm text-body-sm text-on-surface-variant">Remember me</span>
               </label>
-              <a href="#" className="font-body-sm text-body-sm text-primary hover:text-primary-fixed-dim transition-colors">
+              <button
+                type="button"
+                onClick={() => setShowResetNote((v) => !v)}
+                aria-expanded={showResetNote}
+                className="font-body-sm text-body-sm text-primary hover:text-primary-fixed-dim transition-colors"
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
+            {showResetNote && (
+              <p role="status" className="font-body-sm text-body-sm text-on-surface-variant -mt-2">
+                There are no real accounts in this build, so there is no password to reset. Use "Continue as guest" below.
+              </p>
+            )}
 
             <button
               type="submit"
@@ -187,7 +193,7 @@ export default function LoginPage() {
 
           <div className="mt-4 flex items-center justify-center gap-1.5 text-outline">
             <span className="font-label-code-sm text-[10px] tracking-wide uppercase">
-              Academic project — demo credentials only, nothing real is stored
+              Academic project — no accounts or passwords are stored
             </span>
           </div>
         </div>

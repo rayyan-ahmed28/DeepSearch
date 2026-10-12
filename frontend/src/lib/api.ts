@@ -88,7 +88,7 @@ export interface HistoryEntry {
   mode: RunConfig["mode"];
   depth: RunConfig["depth"];
   /** "interrupted": the backend stopped while the run was in progress. */
-  status: "running" | "completed" | "failed" | "interrupted";
+  status: "running" | "completed" | "failed" | "stopped" | "interrupted";
   created_at: string;
   finished_at: string | null;
   llm_provider: LlmProvider;
@@ -133,6 +133,16 @@ export async function setSaved(researchId: string, saved: boolean): Promise<Hist
     return res.ok ? ((await res.json()) as HistoryEntry) : null;
   } catch {
     return null;
+  }
+}
+
+/** Ask the backend to stop a run in progress. True if it accepted (the socket then ends with an error event). */
+export async function stopRun(researchId: string): Promise<boolean> {
+  try {
+    const res = await fetchWithTimeout(`/api/research/${encodeURIComponent(researchId)}/stop`, { method: "POST" }, 3000);
+    return res.status === 202;
+  } catch {
+    return false;
   }
 }
 

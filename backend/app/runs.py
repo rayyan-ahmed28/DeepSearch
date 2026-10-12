@@ -29,6 +29,7 @@ logger = logging.getLogger("deepsearch.runs")
 
 MAX_RUNS_IN_MEMORY = 50
 INTERRUPTED = "The server stopped while this run was in progress, so it did not finish."
+STOPPED_BY_USER = "You stopped this run. Steps that had not finished were not run."
 
 
 class UnknownScenario(KeyError):
@@ -129,6 +130,14 @@ class RunRegistry:
         self.store.set_saved(research_id, saved)
         return {**summary, "saved": saved}
 
+    def stop(self, research_id: str) -> bool:
+        """Stop a run in progress. False if it is unknown or already finished."""
+        run = self.runs.get(research_id)
+        if run is None or run.bus.closed or run.task is None or run.task.done():
+            return False
+        run.task.cancel()
+        return True
+
     def delete(self, research_id: str) -> bool:
         run = self.runs.get(research_id)
         if run is not None and not run.bus.closed:
@@ -177,6 +186,13 @@ class RunRegistry:
                 run.state = ResearchState.model_validate(values)
             report = run.state.report.model_dump(mode="json") if run.state.report else None
             run.bus.publish("report_ready", {"research_id": run.state.research_id, "report": report})
+        except asyncio.CancelledError:  # Stop pressed: end cleanly and keep what was found so far
+            for agent in sorted(ctx.running):
+                ctx.status(agent, "skipped", "Stopped by you")
+            run.state = run.state.model_copy(
+                update={"execution_status": ExecutionStatus.STOPPED, "errors": [*run.state.errors, STOPPED_BY_USER]}
+            )
+            run.bus.publish("error", {"message": STOPPED_BY_USER})
         except Exception as exc:
             reason = str(exc) if isinstance(exc, BudgetExceeded) else f"{type(exc).__name__}: {exc}"
             logger.exception("Run %s failed", run.state.research_id)

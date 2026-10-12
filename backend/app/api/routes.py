@@ -113,6 +113,16 @@ def update_research(research_id: str, body: SavedUpdate, request: Request) -> di
     return summary
 
 
+@router.post("/research/{research_id}/stop", status_code=202)
+def stop_research(research_id: str, request: Request) -> dict:
+    """Stop a run in progress; its socket then ends with a "stopped" error event."""
+    registry = _registry(request)
+    _run_or_404(registry, research_id)
+    if not registry.stop(research_id):
+        raise HTTPException(status_code=409, detail="This run has already finished")
+    return {"research_id": research_id, "stopping": True}
+
+
 @router.delete("/research/{research_id}", status_code=204)
 def delete_research(research_id: str, request: Request) -> Response:
     """Remove a finished run from the history for good."""

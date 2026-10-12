@@ -24,6 +24,12 @@
   }
 }
 
+/* Keyboard focus is always visible (mouse clicks don't show it). */
+:where(a, button, input, select, textarea, summary, [role="switch"], [role="tab"], [tabindex]):focus-visible {
+  outline: 2px solid rgb(var(--c-primary));
+  outline-offset: 2px;
+}
+
 /* Reduced motion, chosen in Settings (the system setting is honoured too). */
 html[data-motion="reduce"] *,
 html[data-motion="reduce"] *::before,

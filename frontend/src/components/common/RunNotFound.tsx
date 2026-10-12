@@ -5,7 +5,7 @@ import { SearchX } from "lucide-react";
 export default function RunNotFound({ id }: { id: string }) {
   const navigate = useNavigate();
   return (
-    <div className="w-full max-w-xl mx-auto px-8 py-24 flex flex-col items-center text-center gap-4">
+    <div className="w-full max-w-xl mx-auto px-4 sm:px-8 py-24 flex flex-col items-center text-center gap-4">
       <SearchX size={32} className="text-outline" />
       <h1 className="font-headline-md text-headline-md text-on-surface">Run not found</h1>
       <p className="font-body-md text-body-md text-on-surface-variant">

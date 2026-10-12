@@ -23,9 +23,13 @@ export function formatShortDate(iso: string): string {
   });
 }
 
-/** A claim's structured value, e.g. "-8.6%" or "1.20 billion USD". */
-export function formatClaimValue(value: number, unit?: string | null): string {
-  if (unit === "%") return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+/**
+ * A claim's structured value, e.g. "-8.6%" or "1.20 billion USD". Percentage
+ * changes get a sign; levels such as volatility ("vol_…") do not.
+ */
+export function formatClaimValue(value: number, unit?: string | null, calculationId?: string | null): string {
+  const isLevel = !!calculationId && !calculationId.startsWith("ret_");
+  if (unit === "%") return `${value > 0 && !isLevel ? "+" : ""}${value.toFixed(1)}%`;
   if (unit === "USD" && Math.abs(value) >= 1e9) return `${(value / 1e9).toFixed(2)} billion USD`;
   if (unit === "USD" && Math.abs(value) >= 1e6) return `${(value / 1e6).toFixed(1)} million USD`;
   return `${value.toLocaleString("en-US")}${unit ? ` ${unit}` : ""}`;

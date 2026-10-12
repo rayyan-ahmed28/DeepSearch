@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { AlertTriangle, Info } from "lucide-react";
 
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import FindingCard from "@/components/workspace/FindingCard";
 import PriceChartCard from "@/components/workspace/PriceChartCard";
 import TimelineCard from "@/components/workspace/TimelineCard";
@@ -80,7 +81,11 @@ export default function ReportBody({ report, chartCaption }: { report: Report; c
       case "chart": {
         const chart = charts[block.chart_id];
         if (!chart) return null;
-        return <PriceChartCard chart={chart} markers={report.timeline} calculations={[]} caption={chartCaption} />;
+        return (
+          <ErrorBoundary inline label="the price chart">
+            <PriceChartCard chart={chart} markers={report.timeline} calculations={[]} caption={chartCaption} />
+          </ErrorBoundary>
+        );
       }
       case "calculations":
         return (

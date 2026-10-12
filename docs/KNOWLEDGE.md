@@ -4,7 +4,7 @@ This file is the single source of truth for the DeepSearch project: what is bein
 
 This file lives in the repository at `docs/KNOWLEDGE.md` and is kept in step with the code; copies elsewhere (claude.ai project knowledge, Downloads) may lag. The older status page "DeepSearch — Full Project Plan & Status.html" is superseded. The companion files `DEEPSEARCH_PLAN.md` and `DEEPSEARCH_PHASES.md` were not carried over; section 14 holds the phase order.
 
-**Last updated:** 2026-10-13 (Phase 8). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
+**Last updated:** 2026-10-13 (Phase 9). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
 
 ---
 
@@ -251,6 +251,10 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D46 | Settings hold only options that do something: appearance, research defaults, run-finished behaviour, browser data, and real diagnostics from `/api/health`. The mockup's fake registries, SOC2/HIPAA claims, build signatures, "Flush Cache" and "Export Audit Log" are gone | Content-integrity rules: no control or claim without a real feature behind it |
 | D47 | Settings are per browser (`localStorage`, `store/settingsStore.ts`); `index.html` applies the saved appearance before first paint | No accounts (D5); and no flash of the dark theme when light is saved |
 | D48 | The mode badge reads `/api/health`: "Sample mode" (backend off), "Live data · rule-based", or "Live · Gemini" | Replaces the static "DEMO MODE" chip, which was wrong whenever the backend was running |
+| D49 | Below 1024 px the sidebar is a slide-in drawer (☰ in the top bar; closes on navigation, Escape or the backdrop); pages use `px-4 sm:px-8` | The app must not break on a phone or tablet (section 1); checked with an overflow sweep of every screen at 375, 820 and 1280 px |
+| D50 | A real Stop: `POST /api/research/{id}/stop` cancels the run task, running agents become "Stopped by you", the run keeps what it found and is saved with status `stopped` | The plan said pause/abort exists or is removed; a cancel is honest and cheap, a pause is not |
+| D51 | Error boundaries around every page (`AppShell` and the root) and around the agent graph, charts, timeline and report body; unknown routes get a Not Found page | One failing component must never blank the app |
+| D52 | Frontend tests use Vitest on the pure logic (stream reducer, report export and citations, formatting); no Playwright | Playwright's browser download is likely to be blocked by Smart App Control on this machine; the browser checks are done through the app's preview pane |
 | D30 | The full graph shape and the deterministic verification rules were built in Phase 4 (pulled forward from Phases 5–6) | A recorded run must replay through the real pipeline, and statuses must be computed at replay time rather than copied from a file |
 | D31 | A figure computed in code from the cited price data counts as verified | It is checked against its data by construction; "corroborated" would wrongly imply two agreeing sources |
 | D32 | Recorded scenarios never fall back to the fictional sample: if the backend is down, the Dashboard says so and how to start it | A replay must never be mistaken for real recorded research |
@@ -392,6 +396,14 @@ Ported from the Stitch `deepsearch_final_research_dossier_intelligence_report` s
 - Lazy-loaded with the Workspace so Recharts stays out of the main bundle.
 - Verified in the browser on 2026-10-12: combined, legal-only (finance section dropped and shown in the audit) and in-progress sample reports; a backend NVDA report with real data; citation cards; Markdown export checked in Node.
 
+### Frontend hardening (done, Phase 9)
+- **Responsive (D49):** `AppShell` owns a drawer state; `Sidebar` takes `open`/`onClose`; `TopBar` has the ☰ button and hides the breadcrumb and mode badge on narrow screens. The Dashboard action row wraps, and calculation rows stack under 640 px. No screen overflows horizontally at 375, 820 or 1280 px.
+- **States:** `components/common/ErrorBoundary.tsx` (page and inline variants, resets on navigation); `RunLoading` while a run is fetched from the history; `pages/NotFoundPage.tsx` for unknown routes; Run again and Stop failures show inline instead of `alert()`.
+- **Stop (D50):** a Stop button on the Execution screen for backend runs in progress; History shows "Stopped by you".
+- **Accessibility:** a skip-to-content link; a global `:focus-visible` outline; `ToggleSwitch` announces its label and description; sidebar links set `aria-current` correctly for History vs Saved Reports; icon-only buttons have labels. Contrast (WCAG AA, 4.5:1) checked for the muted text tokens in both themes; three light values were darkened: outline #605e73, primary-container #6158e8, amber accent container #9a5f00.
+- **Honesty fixes:** Login's "Mesh 4.2 · Live" chip is now the real mode badge; "Forgot password?" explains there are no accounts; Sign Up's version and Terms/Privacy links became the real version and a link to the Limits section. Claims carry `calculation_id`, so volatility shows 37.5% instead of +37.5% (only `ret_*` changes get a sign). The sidebar's Legal and Finance shortcuts open New Research with that domain chosen (`?mode=`).
+- **Tests and scripts:** `npm test` (Vitest, `src/test/*.test.ts`, 11 tests) and `npm run typecheck`; the dead `lint` script (ESLint was never installed) was removed.
+
 ### Landing and Settings (done, Phase 8)
 - **Landing** (`pages/LandingPage.tsx`, built from the earlier draft in `C:\Major project 4-1\LandingPage.tsx`): nav with theme toggle; hero with the real `AgentTopology` replaying the fictional sample on a loop (`hooks/useLoopingSample.ts`, nothing is stored) and labelled as such; a proof strip of true statements (every claim cited, code-filled figures, at most 8 LLM calls, 7 claim labels) instead of the mockup's counters; How it works; Domains with the claim-type chips; the three recorded scenarios as examples; Limits; CTA; footer. The Stitch landing `screen.png` in the export is broken (an HTML error page), so the layout follows the draft and the Stitch `code.html` text.
 - **Settings** (`pages/SettingsPage.tsx`, Stitch layout): default research depth (with what each depth really changes: sources per search 5/8/12, price period 3/6/12 months), default domains, when a run finishes (auto-open report on the Execution screen, Web Audio chime with a Test button, show the fictional samples on the Dashboard), data in this browser (clear the local run list), appearance (theme cards with mini previews for Dark/Light/System, accent swatches, interface size Compact/Default/Large via the root font size, motion Follow system/Reduce/Full), and About & diagnostics from `/api/health` (connection and round trip with Test connection, mode, web search back end, LLM budget, scenario and history counts, versions, which free services are configured). A footer bar says changes save automatically and offers Reset to defaults.
@@ -439,6 +451,8 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 
 **Phase 7 (done): saved history and reports, 114 passing tests.** `app/db/store.py` (`RunStore`: `run_started`, `run_finished`, `mark_interrupted`, `set_saved`, `delete`, `summary`, `list`, `load`) and `EventBus.replay()`. `RunRegistry` writes a row at start and at finish, and `get()` falls back to the database (D42, D43). New endpoints are in section 6. `create_app()` and `RunRegistry` accept a `store` for tests. Tests in `test_api.py`: a finished run survives a restart and its events replay identically; save, unsave and delete; a run cut off by a restart reads as interrupted; database path resolution.
 
+**Phase 9 additions:** `POST /api/research/{id}/stop` and `ExecutionStatus.STOPPED` (D50), `Claim.calculation_id`, 115 backend tests.
+
 **Not started (live):** rate limiting.
 
 **Planned structure:** `app/main.py`, `config.py`, `api/` (routes and WebSocket), `graph/` (state, build_graph, `nodes/`), `workers/`, `providers/` (base, gemini, fake, openai stub), `demo/` (scenarios and replay runner), `models/schemas.py`, `db/`, `utils/` (logger, events). Keep the folder structure simple enough for students to explain in a viva.
@@ -460,6 +474,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Research Workspace | Done (Phase 1) |
 | Report contract and Final Report screen | Done (Phase 3) |
 | Landing, Settings | Done (Phase 8): light/dark/system theme, accents, size, motion, research defaults, run-finished chime and auto-open, real diagnostics |
+| Frontend hardening | Done (Phase 9): phone/tablet layout, error boundaries, Not Found, Stop button, accessibility pass, 11 Vitest tests |
 | Backend | Full graph; finance and legal paths live (Phase 5); claim extraction and verification live and recorded (Phase 6); live check script; SQLite history and saved reports (Phase 7); 114 tests |
 | Research History, Saved Reports | Done (Phase 7) |
 | Demo scenarios | Three recorded runs with checked sources and real price snapshots, data as of 12 Oct 2026; Dashboard "Demo scenarios" section (Phase 4) |
@@ -473,7 +488,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 6. ~~Live claim extraction for Verification, Gemini end-to-end, and the live smoke script.~~ Done 2026-10-13. Gemini is tested offline with a stubbed client; the first real-key run is the open item in section 19.
 7. ~~Persistence (history, saved reports) and full integration.~~ Done 2026-10-13: runs saved in SQLite and reopenable after a restart or from another browser; Research History and Saved Reports pages; Dashboard and sidebar wired to them.
 8. ~~Landing and Settings.~~ Done 2026-10-13, with a light theme, accent colours and an honest mode badge (D45–D48).
-9. Frontend hardening.
+9. ~~Frontend hardening.~~ Done 2026-10-13 (D49–D52).
 10. Hardening, docs and viva pack.
 
 **Cut list if time runs short (drop in this order):** deployment; Settings polish; Deep depth; EDGAR filings; export; history persistence; Live Mode (last, and say so plainly if cut). Never cut: guardrails, the Router to Managers to Workers to Verification to Report structure, Demo Mode, honesty labels.
@@ -554,7 +569,7 @@ Still to review when built: Landing (counters like "100% auditable"), Settings (
 - Check in AI Studio which Gemini models this project's free tier allows, and its daily limit.
 - Run the live check with a real Gemini key: put `GEMINI_API_KEY` in `backend/.env`, then from `backend` run `& "$HOME\.venvs\deepsearch\Scripts\python.exe" scripts/live_smoke.py`. Every LLM call should be labelled Gemini, no step should fall back, and all three runs should pass. If `GEMINI_MODEL` is rejected (HTTP 404 or 400), pick a model that AI Studio lists for the free tier.
 - Optional: a real name for the Dashboard greeting.
-- Optional: re-add pause/abort and a retrying state to the Execution screen.
+- Optional: a retrying state on the Execution screen (Stop exists since Phase 9; pause was dropped, D50).
 - Optional: upgrade Recharts 2 to 3 (npm reports 2.x as no longer maintained).
 - `deepsearch_terminal_authentication_1` is treated as discarded.
 

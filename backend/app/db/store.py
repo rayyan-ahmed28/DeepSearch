@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS runs (
     query        TEXT NOT NULL,
     mode         TEXT NOT NULL,
     depth        TEXT NOT NULL,
-    status       TEXT NOT NULL,            -- running | completed | failed | interrupted
+    status       TEXT NOT NULL,            -- running | completed | failed | stopped | interrupted
     created_at   TEXT NOT NULL,
     finished_at  TEXT,
     llm_provider TEXT NOT NULL,            -- gemini | fake | recorded

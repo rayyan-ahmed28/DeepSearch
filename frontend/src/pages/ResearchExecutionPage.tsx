@@ -1,14 +1,17 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { CheckCircle2, FastForward, FileText, Gavel, LayoutPanelLeft, LineChart, RotateCcw } from "lucide-react";
+import { CheckCircle2, FastForward, FileText, Gavel, LayoutPanelLeft, LineChart, RotateCcw, Square } from "lucide-react";
 
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import AppShell from "@/components/layout/AppShell";
 import AgentTopology from "@/components/execution/AgentTopology";
 import ActivityFeed from "@/components/execution/ActivityFeed";
+import RunLoading from "@/components/common/RunLoading";
 import RunNotFound from "@/components/common/RunNotFound";
 import RunErrorBanner from "@/components/common/RunErrorBanner";
 import { useNow, useRun } from "@/hooks/useRun";
+import { stopRun } from "@/lib/api";
 import { AGENTS, LLM_CALL_BUDGET } from "@/lib/executionEvents";
 import { formatElapsed } from "@/lib/format";
 import { engineLabel, isRunActive, runElapsedMs, useRunStore } from "@/store/runStore";
@@ -30,7 +33,7 @@ export default function ResearchExecutionPage() {
       </AppShell>
     );
   }
-  if (!run) return <AppShell breadcrumb={`CORE://RESEARCH/${id.toUpperCase()}`}>{null}</AppShell>;
+  if (!run) return <AppShell breadcrumb={`CORE://RESEARCH/${id.toUpperCase()}`}><RunLoading id={id} /></AppShell>;
   return <ExecutionView id={id} />;
 }
 
@@ -41,6 +44,8 @@ function ExecutionView({ id }: { id: string }) {
   const skipRun = useRunStore((s) => s.skipToEnd);
   const startRun = useRunStore((s) => s.startRun);
   const [starting, setStarting] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const now = useNow(isRunActive(run));
 
   const state = run.state;
@@ -52,13 +57,23 @@ function ExecutionView({ id }: { id: string }) {
   // A backend run can't be rewound: "Run again" starts a fresh run with the same settings.
   const runAgain = async () => {
     setStarting(true);
+    setActionError(null);
     try {
       const scenarioId = run.engine.kind === "backend" ? run.engine.scenarioId : undefined;
       navigate(`/research/${await startRun(run.config, scenarioId)}`);
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Could not start the run.");
+      setActionError(err instanceof Error ? err.message : "Could not start the run.");
     } finally {
       setStarting(false);
+    }
+  };
+  // The backend stops the graph; the socket then delivers the "stopped" event.
+  const stop = async () => {
+    setStopping(true);
+    setActionError(null);
+    if (!(await stopRun(id))) {
+      setActionError("Could not stop the run: it may have just finished, or the backend is not reachable.");
+      setStopping(false);
     }
   };
 
@@ -76,7 +91,7 @@ function ExecutionView({ id }: { id: string }) {
 
   return (
     <AppShell breadcrumb={`CORE://RESEARCH/${id.toUpperCase()}`}>
-      <div className="w-full max-w-[1400px] mx-auto px-8 py-8 flex flex-col gap-6">
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
         {/* Header */}
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-outline-variant/20">
           <div className="flex flex-col gap-2 min-w-0">
@@ -120,6 +135,15 @@ function ExecutionView({ id }: { id: string }) {
                 <FastForward size={16} /> Skip to end
               </button>
             )}
+            {!isSample && isRunActive(run) && (
+              <button
+                onClick={stop}
+                disabled={stopping}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-error/40 text-error hover:bg-error/10 transition-colors font-body-md text-body-md disabled:opacity-50"
+              >
+                <Square size={14} fill="currentColor" /> {stopping ? "Stopping" : "Stop"}
+              </button>
+            )}
             <button
               onClick={isSample ? restart : runAgain}
               disabled={starting || (!isSample && isRunActive(run))}
@@ -131,6 +155,11 @@ function ExecutionView({ id }: { id: string }) {
         </header>
 
         {state.error && <RunErrorBanner message={state.error} />}
+        {actionError && (
+          <p role="alert" className="font-body-sm text-body-sm text-error">
+            {actionError}
+          </p>
+        )}
 
         {/* Progress */}
         <div className="h-1 w-full rounded-full bg-surface-container-high overflow-hidden">
@@ -157,7 +186,9 @@ function ExecutionView({ id }: { id: string }) {
                   {agentsDone} / {agentsActive} agents done
                 </span>
               </div>
-              <AgentTopology agents={state.agents} />
+              <ErrorBoundary inline label="the agent graph">
+                <AgentTopology agents={state.agents} />
+              </ErrorBoundary>
             </section>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

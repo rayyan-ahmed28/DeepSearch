@@ -159,3 +159,20 @@ def test_database_path_resolves_next_to_the_backend(tmp_path):
 
     assert sqlite_path(":memory:", tmp_path) == ":memory:"
     assert sqlite_path("sqlite:///./deepsearch.db", tmp_path) == str((tmp_path / "deepsearch.db").resolve())
+
+
+def test_stop_ends_a_run_cleanly_and_is_saved(tmp_path):
+    import time
+
+    settings = Settings(demo_pace_seconds=0.3, database_url=f"sqlite:///{tmp_path / 'h.db'}")
+    with TestClient(create_app(settings, llm=FakeLLMProvider(), prices=FixturePrices(), live=offline_live())) as client:
+        research_id = client.post("/api/research", json={"query": "x", "scenario_id": "sec_v_musk_2018"}).json()["research_id"]
+        time.sleep(0.5)  # a recorded run replays slowly, so it is still in progress
+        assert client.post(f"/api/research/{research_id}/stop").status_code == 202
+        with client.websocket_connect(f"/ws/research/{research_id}") as ws:
+            events = collect(ws)
+        assert events[-1]["type"] == "error" and "You stopped this run" in events[-1]["payload"]["message"]
+        assert not any(e["type"] == "report_ready" for e in events)
+        assert client.get(f"/api/research/{research_id}").json()["status"] == "stopped"
+        assert client.post(f"/api/research/{research_id}/stop").status_code == 409  # already finished
+        assert client.post("/api/research/nope/stop").status_code == 404

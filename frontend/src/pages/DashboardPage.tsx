@@ -78,7 +78,7 @@ function historyItem(entry: HistoryEntry, now: number): RecentItem {
     domainLabel: chip.label,
     domainClass: chip.className,
     completed: entry.status === "completed",
-    stopped: entry.status === "failed" || entry.status === "interrupted",
+    stopped: entry.status === "failed" || entry.status === "stopped" || entry.status === "interrupted",
     sources: entry.source_count,
   };
 }
@@ -144,7 +144,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="w-full max-w-[1400px] mx-auto px-8 py-10 flex flex-col gap-10">
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-10 flex flex-col gap-10">
         {/* Greeting */}
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-outline-variant/20">
           <div className="flex flex-col gap-1.5 max-w-3xl">
@@ -204,7 +204,7 @@ export default function DashboardPage() {
                 ))}
               </div>
 
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex flex-wrap items-center gap-2 ml-auto">
                 <div className="relative inline-flex items-center bg-surface-container border border-outline-variant/40 rounded px-2.5 py-1.5 text-on-surface-variant">
                   <select
                     value={depth}

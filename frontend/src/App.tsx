@@ -1,8 +1,10 @@
 import { lazy, Suspense, type ReactNode } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import RunFinishedEffects from "@/components/common/RunFinishedEffects";
+import NotFoundPage from "@/pages/NotFoundPage";
 import LandingPage from "@/pages/LandingPage";
 
 import LoginPage from "@/pages/LoginPage";
@@ -27,9 +29,11 @@ function OnDemand({ children }: { children: ReactNode }) {
 // -> Workspace -> Report), plus Settings off the shared sidebar.
 export default function App() {
   const motion = useSettings((s) => s.motion);
+  const { pathname } = useLocation();
   return (
     <MotionConfig reducedMotion={motion === "reduce" ? "always" : motion === "full" ? "never" : "user"}>
       <RunFinishedEffects />
+      <ErrorBoundary resetKey={pathname}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -41,8 +45,9 @@ export default function App() {
         <Route path="/research/:id/workspace" element={<OnDemand><ResearchWorkspacePage /></OnDemand>} />
         <Route path="/research/:id/report" element={<OnDemand><ReportPage /></OnDemand>} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </ErrorBoundary>
     </MotionConfig>
   );
 }

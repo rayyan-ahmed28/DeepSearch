@@ -72,11 +72,11 @@ export default function PriceChartCard({ chart, markers, calculations, caption }
       {calculations.length > 0 && (
         <div className="flex flex-col divide-y divide-outline-variant/20 rounded-lg border border-outline-variant/20">
           {calculations.map((c) => (
-            <div key={c.id} className="flex items-center justify-between gap-3 px-3 py-2">
+            <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 px-3 py-2">
               <span className="font-body-sm text-body-sm text-on-surface-variant">{c.description}</span>
-              <span className="flex flex-col items-end shrink-0">
+              <span className="flex flex-col sm:items-end sm:shrink-0 min-w-0">
                 <span className="font-label-code-md text-label-code-md text-on-surface">{formatCalculation(c.result, c.unit)}</span>
-                <span className="font-label-code-sm text-[10px] text-outline">{c.method}</span>
+                <span className="font-label-code-sm text-[10px] text-outline break-words">{c.method}</span>
               </span>
             </div>
           ))}

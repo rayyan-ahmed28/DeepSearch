@@ -89,7 +89,7 @@ export default function SettingsPage() {
 
   return (
     <AppShell breadcrumb="CORE://SYSTEM/SETTINGS">
-      <div className="w-full max-w-[1400px] mx-auto px-8 py-8 pb-28 flex flex-col gap-8">
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-8 pb-28 flex flex-col gap-8">
         <header className="flex flex-col gap-2">
           <span className="font-label-code-sm text-label-code-sm text-primary">CORE://SYSTEM/SETTINGS</span>
           <h1 className="font-headline-xl text-headline-xl text-on-surface tracking-tight">Settings &amp; Research Parameters</h1>
@@ -273,8 +273,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Footer bar */}
-      <div className="print:hidden fixed bottom-0 left-60 right-0 z-30 border-t border-outline-variant/20 bg-surface/90 backdrop-blur-xl">
-        <div className="max-w-[1400px] mx-auto px-8 h-14 flex items-center justify-between gap-4">
+      <div className="print:hidden fixed bottom-0 left-0 lg:left-60 right-0 z-30 border-t border-outline-variant/20 bg-surface/90 backdrop-blur-xl">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 h-14 flex items-center justify-between gap-4">
           <span className="flex items-center gap-2 font-label-code-sm text-label-code-sm text-on-surface-variant">
             <span className="w-2 h-2 rounded-full bg-tertiary" />
             Saved automatically in this browser
@@ -372,11 +372,11 @@ function ThemePreview({ kind }: { kind: ThemeChoice }) {
   return (
     <div className="h-16 w-full overflow-hidden">
       {kind === "dark" && pane(dark, "#8781ff")}
-      {kind === "light" && pane(light, "#6b63f2")}
+      {kind === "light" && pane(light, "#6158e8")}
       {kind === "system" && (
         <div className="h-full grid grid-cols-2">
           <div className="overflow-hidden">{pane(dark, "#8781ff")}</div>
-          <div className="overflow-hidden">{pane(light, "#6b63f2")}</div>
+          <div className="overflow-hidden">{pane(light, "#6158e8")}</div>
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import BrandMark from "@/components/common/BrandMark";
+import { APP_VERSION } from "@/lib/version";
 
 type Domain = "legal" | "finance" | "both";
 
@@ -69,7 +70,7 @@ export default function SignUpPage() {
                 DeepSearch
               </span>
               <span className="font-label-code-sm text-[10px] text-outline tracking-widest uppercase">
-                v2.4 Core
+                v{APP_VERSION}
               </span>
             </div>
           </Link>
@@ -290,14 +291,10 @@ export default function SignUpPage() {
                 className="w-4 h-4 mt-0.5 rounded bg-surface-container-lowest text-primary-container focus:ring-0 focus:outline-none cursor-pointer"
               />
               <label htmlFor="terms" className="font-body-sm text-body-sm text-outline leading-tight cursor-pointer select-none">
-                I agree to the{" "}
-                <a href="#" className="text-on-surface underline hover:text-primary transition-colors">
-                  Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="#" className="text-on-surface underline hover:text-primary transition-colors">
-                  Privacy Policy
-                </a>
+                I understand DeepSearch is a college project and{" "}
+                <Link to="/#limits" className="text-on-surface underline hover:text-primary transition-colors">
+                  not legal or financial advice
+                </Link>
                 .
               </label>
             </div>

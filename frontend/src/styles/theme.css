@@ -84,10 +84,10 @@
   --c-on-tertiary-fixed: 0 32 29;
   --c-on-tertiary-fixed-variant: 0 80 73;
   --c-on-warning: 255 255 255;
-  --c-outline: 111 109 128;
+  --c-outline: 96 94 115;
   --c-outline-variant: 201 198 214;
   --c-primary: 79 68 226;
-  --c-primary-container: 107 99 242;
+  --c-primary-container: 97 88 232;
   --c-primary-fixed: 227 223 255;
   --c-primary-fixed-dim: 196 192 255;
   --c-secondary: 0 101 143;
@@ -141,7 +141,7 @@
 :root[data-theme="light"][data-accent="amber"] {
   --c-primary: 133 80 0;
   --c-on-primary: 255 255 255;
-  --c-primary-container: 173 106 0;
+  --c-primary-container: 154 95 0;
   --c-on-primary-container: 255 255 255;
   --c-surface-tint: 133 80 0;
   --c-primary-fixed-dim: 255 207 138;

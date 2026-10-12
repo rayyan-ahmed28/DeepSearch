@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Brain,
   Paperclip,
@@ -53,8 +53,13 @@ const DEFAULT_TOGGLES = {
 export default function NewResearchPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  // Starting values come from Settings → Research defaults.
-  const [domain, setDomain] = useState<DomainId>(() => useSettings.getState().defaultMode);
+  // Starting values come from Settings → Research defaults; ?mode= (the sidebar shortcuts) wins.
+  const [params] = useSearchParams();
+  const modeParam = DOMAINS.find((d) => d.id === params.get("mode"))?.id;
+  const [domain, setDomain] = useState<DomainId>(() => modeParam ?? useSettings.getState().defaultMode);
+  useEffect(() => {
+    if (modeParam) setDomain(modeParam);
+  }, [modeParam]);
   const [depth, setDepth] = useState<DepthId>(() => useSettings.getState().defaultDepth);
   const [advancedOpen, setAdvancedOpen] = useState(true);
   const [toggles, setToggles] = useState(DEFAULT_TOGGLES);
@@ -85,7 +90,7 @@ export default function NewResearchPage() {
 
   return (
     <AppShell breadcrumb="CORE://RESEARCH/NEW_QUERY">
-      <div className="max-w-6xl mx-auto w-full px-8 py-10 flex flex-col gap-8">
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-8 py-10 flex flex-col gap-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <h1 className="font-headline-xl text-headline-xl text-on-surface tracking-tight">
