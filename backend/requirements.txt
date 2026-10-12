@@ -1,16 +1,18 @@
 # ── Core ─────────────────────────────────────────────────────────
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0
-pydantic>=2.5.1
+# <2.14: Windows Smart App Control blocks pydantic-core 2.50 (the 2.14 line)
+# until it builds reputation; 2.13.x loads fine. gpt-researcher needs >=2.11.5.
+pydantic>=2.11.5,<2.14
 python-dotenv>=1.0.0
 websockets>=13.1
 sqlalchemy>=2.0.28
 aiofiles>=23.2.1
 
 # ── Orchestration ────────────────────────────────────────────────
-# Pinned to the same range gpt-researcher itself requires, to avoid a
-# resolver conflict between our two uses of LangGraph.
-langgraph>=0.2.73,<0.3
+# gpt-researcher depends on langchain>=1.0, which needs LangGraph 1.x.
+# (An earlier "<0.3" pin made this file impossible to install.)
+langgraph>=1.0.0,<2
 
 # ── LLM (default provider: Gemini free tier — see D1) ───────────
 google-genai>=1.0.0
@@ -21,7 +23,11 @@ google-genai>=1.0.0
 # frontend; those are ours. Brings in its own transitive stack
 # (langchain/langgraph/tavily-python/ddgs/unstructured/etc.) — expect
 # a sizeable `pip install` the first time.
-gpt-researcher>=0.14.7
+# Held to the audited 0.14.x line so the narrow API we rely on doesn't move.
+gpt-researcher>=0.14.7,<0.15
+# gpt-researcher only lists its Gemini adapter as an optional extra; without
+# it, FAST_LLM/SMART_LLM=google_genai:... fail at import time.
+langchain-google-genai>=2.0.0
 
 # ── Finance & legal data (see D3, D4) ───────────────────────────
 yfinance>=0.2.40

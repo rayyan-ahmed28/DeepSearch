@@ -5,15 +5,19 @@ including with zero API keys configured (this is the foundation the
 Demo Mode smoke test in Section 20 builds on).
 """
 
+from datetime import date
+
 from app.models.schemas import (
     Claim,
     ClaimType,
     Domain,
+    FinancialDataPoint,
     ResearchRequest,
     ResearchState,
     Source,
     SourceType,
     WSEvent,
+    merge_by_id,
 )
 
 
@@ -27,7 +31,7 @@ def test_research_state_defaults():
 
 
 def test_sources_and_claims_are_additive():
-    state = ResearchState(user_query="How could a lawsuit against Nvidia affect its stock price?")
+    state = ResearchState(user_query="How could a lawsuit against Example Corp affect its stock price?")
     state.detected_domains = [Domain.FINANCE, Domain.LEGAL]
 
     src = Source(
@@ -68,3 +72,37 @@ def test_state_round_trips_to_json():
     dumped = state.model_dump_json()
     assert isinstance(dumped, str)
     assert "research_id" in dumped
+
+
+def test_merge_by_id_appends_and_dedupes():
+    a = Source(title="A", url="https://example.com/a", source_type=SourceType.SECONDARY, retrieved_by="web_research")
+    b = Source(title="B", url="https://example.com/b", source_type=SourceType.SECONDARY, retrieved_by="web_research")
+    a_updated = a.model_copy(update={"snippet": "updated"})
+
+    merged = merge_by_id([a], [b, a_updated])
+
+    assert [s.id for s in merged] == [a.id, b.id]
+    assert merged[0].snippet == "updated"
+
+
+def test_claim_carries_structured_fields_for_conflict_checks():
+    claim = Claim(
+        text="Example Corp reported revenue of 1.2 billion USD.",
+        claim_type=ClaimType.COMPANY_STATEMENT,
+        event_date=date(2024, 2, 1),
+        value=1.2e9,
+        unit="USD",
+    )
+    assert claim.event_date == date(2024, 2, 1)
+    assert claim.value == 1.2e9
+
+
+def test_financial_data_point_records_ticker_and_adjustment():
+    point = FinancialDataPoint(ticker="EXMP", date=date(2024, 1, 2), close=10.5)
+    assert point.ticker == "EXMP"
+    assert point.split_adjusted is True
+
+
+def test_ws_event_has_sequence_number():
+    assert WSEvent(type="activity_log", payload={}).seq == 0
+    assert WSEvent(type="activity_log", payload={}, seq=7).seq == 7
