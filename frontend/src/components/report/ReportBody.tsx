@@ -21,6 +21,11 @@ export default function ReportBody({ report, chartCaption }: { report: Report; c
   const claims = useMemo(() => Object.fromEntries(report.claims.map((c) => [c.id, c])), [report]);
   const calcs = useMemo(() => Object.fromEntries(report.calculations.map((c) => [c.id, c])), [report]);
   const charts = useMemo(() => Object.fromEntries(report.charts.map((c) => [c.id, c])), [report]);
+  // Key figures: the ones the narrative actually cites, in the order it cites them.
+  const keyFigures = useMemo(() => {
+    const cited = [...new Set(report.audit.figures_filled)].map((id) => calcs[id]).filter(Boolean);
+    return (cited.length ? cited : report.calculations).slice(0, 3);
+  }, [report, calcs]);
   const [open, setOpen] = useState<OpenCitation | null>(null);
 
   const toggle = (blockKey: string, sourceId: string) =>
@@ -162,9 +167,9 @@ export default function ReportBody({ report, chartCaption }: { report: Report; c
               </Fragment>
             );
           })}
-          {section.kind === "executive_summary" && report.calculations.length > 0 && (
+          {section.kind === "executive_summary" && keyFigures.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {report.calculations.slice(0, 3).map((c) => (
+              {keyFigures.map((c) => (
                 <div key={c.id} className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1">
                   <span className="font-tag-caps text-tag-caps uppercase text-outline">Key figure</span>
                   <span className="font-headline-md text-headline-md text-on-surface tabular-nums">{formatCalculation(c.result, c.unit)}</span>

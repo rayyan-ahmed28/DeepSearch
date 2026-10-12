@@ -1,0 +1,1017 @@
+{
+  "id": "sec_v_musk_2018",
+  "title": "SEC v. Musk (2018): the 'funding secured' case and Tesla's stock",
+  "description": "Legal + Finance. The SEC's 2018 fraud charges against Elon Musk over his 'funding secured' tweets, the settlement, the court's approval, and how Tesla's shares moved around each event.",
+  "query": "How did the SEC's 2018 'funding secured' case against Elon Musk affect Tesla's stock price?",
+  "mode": "auto",
+  "depth": "standard",
+  "data_as_of": "2026-10-12",
+  "sources": [
+    {
+      "id": "sec_charges",
+      "title": "SEC press release 2018-219: Elon Musk Charged With Securities Fraud for Misleading Tweets",
+      "url": "https://www.sec.gov/news/press-release/2018-219",
+      "source_type": "regulatory",
+      "published_date": "2018-09-27",
+      "retrieved_by": "web_research",
+      "snippet": "On August 7, 2018, Musk tweeted to his 22 million Twitter followers that he could take Tesla private at $420 per share"
+    },
+    {
+      "id": "sec_settlement",
+      "title": "SEC press release 2018-226: Elon Musk Settles SEC Fraud Charges; Tesla Charged With and Resolves Securities Law Charge",
+      "url": "https://www.sec.gov/news/press-release/2018-226",
+      "source_type": "regulatory",
+      "published_date": "2018-09-29",
+      "retrieved_by": "web_research",
+      "snippet": "Musk and Tesla have agreed to settle the charges against them without admitting or denying the SEC's allegations."
+    },
+    {
+      "id": "sec_lr_24413",
+      "title": "SEC Litigation Release No. 24413 (SEC v. Elon Musk, No. 1:18-cv-8865, S.D.N.Y.)",
+      "url": "https://www.sec.gov/litigation/litreleases/lr-24413",
+      "source_type": "regulatory",
+      "published_date": "2019-02-27",
+      "retrieved_by": "web_research",
+      "snippet": "should not be held in contempt for violating the terms of the Court's October 16, 2018 Final Judgment"
+    },
+    {
+      "id": "complaint",
+      "title": "Complaint, SEC v. Elon Musk, No. 1:18-cv-8865 (S.D.N.Y.), Document 1",
+      "url": "https://www.sec.gov/files/litigation/complaints/2018/comp-pr2018-219.pdf",
+      "source_type": "official_court",
+      "published_date": "2018-09-27",
+      "retrieved_by": "legal_records",
+      "snippet": "Musk had not even discussed, much less confirmed, key deal terms, including price, with any potential funding source."
+    },
+    {
+      "id": "techcrunch_2018_09_27",
+      "title": "TechCrunch: Tesla shares plummet after SEC files fraud charges against Elon Musk",
+      "url": "https://techcrunch.com/2018/09/27/tesla-shares-fall-more-than-10-after-sec-fraud-charges-against-elon-musk",
+      "source_type": "reputable_news",
+      "published_date": "2018-09-27",
+      "retrieved_by": "web_research",
+      "snippet": null
+    },
+    {
+      "id": "fortune_2018_09_28",
+      "title": "Fortune: Tesla Stock Is Crashing After SEC Fraud Lawsuit Against Elon Musk",
+      "url": "https://fortune.com/2018/09/28/tesla-stock-elon-musk-sec-fraud/",
+      "source_type": "reputable_news",
+      "published_date": "2018-09-28",
+      "retrieved_by": "web_research",
+      "snippet": null
+    },
+    {
+      "id": "fortune_2018_10_01",
+      "title": "Fortune: Elon Musk's SEC Settlement Is Sending Tesla Shares Through the Roof",
+      "url": "https://fortune.com/2018/10/01/tesla-shares-soar-musk-sec-settlement/",
+      "source_type": "reputable_news",
+      "published_date": "2018-10-01",
+      "retrieved_by": "web_research",
+      "snippet": null
+    },
+    {
+      "id": "techcrunch_2018_10_01",
+      "title": "TechCrunch: Tesla shares rebound, erasing losses from SEC-Elon Musk showdown",
+      "url": "https://techcrunch.com/2018/10/01/tesla-shares-rebound-erasing-losses-from-sec-elon-musk-showdown",
+      "source_type": "reputable_news",
+      "published_date": "2018-10-01",
+      "retrieved_by": "web_research",
+      "snippet": null
+    },
+    {
+      "id": "techcrunch_2018_10_16",
+      "title": "TechCrunch: Elon Musk's settlement with the SEC approved by judge, sending shares higher",
+      "url": "https://techcrunch.com/2018/10/16/elon-musks-settlement-with-the-sec-approved-by-judge-sending-shares-higher",
+      "source_type": "reputable_news",
+      "published_date": "2018-10-16",
+      "retrieved_by": "web_research",
+      "snippet": null
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2018-08-07",
+      "label": "'Funding secured' tweet",
+      "description": "Musk tweets that he is considering taking Tesla private and that funding is secured.",
+      "source_ids": [
+        "sec_charges",
+        "complaint"
+      ]
+    },
+    {
+      "date": "2018-09-27",
+      "label": "SEC files fraud charges",
+      "description": "The SEC sues Musk for securities fraud in federal court in Manhattan.",
+      "source_ids": [
+        "sec_charges",
+        "complaint"
+      ]
+    },
+    {
+      "date": "2018-09-29",
+      "label": "Settlement announced",
+      "description": "Musk and Tesla settle without admitting or denying the allegations.",
+      "source_ids": [
+        "sec_settlement"
+      ]
+    },
+    {
+      "date": "2018-10-16",
+      "label": "Final judgment entered",
+      "description": "The court approves the settlement and enters its final judgment.",
+      "source_ids": [
+        "sec_lr_24413",
+        "techcrunch_2018_10_16"
+      ]
+    }
+  ],
+  "prices": {
+    "ticker": "TSLA",
+    "snapshot_taken": "2026-10-12",
+    "closes": [
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-02",
+        "close": 22.338,
+        "volume": 281397000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-03",
+        "close": 20.724,
+        "volume": 184239000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-05",
+        "close": 20.6107,
+        "volume": 262146000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-06",
+        "close": 20.5933,
+        "volume": 132982500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-09",
+        "close": 21.234,
+        "volume": 113952000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-10",
+        "close": 21.498,
+        "volume": 142072500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-11",
+        "close": 21.264,
+        "volume": 73261500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-12",
+        "close": 21.114,
+        "volume": 85818000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-13",
+        "close": 21.258,
+        "volume": 88047000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-16",
+        "close": 20.6733,
+        "volume": 117280500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-17",
+        "close": 21.5127,
+        "volume": 104943000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-18",
+        "close": 21.59,
+        "volume": 84363000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-19",
+        "close": 21.3487,
+        "volume": 88729500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-20",
+        "close": 20.9053,
+        "volume": 77433000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-23",
+        "close": 20.2133,
+        "volume": 164893500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-24",
+        "close": 19.8287,
+        "volume": 143862000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-25",
+        "close": 20.5827,
+        "volume": 106131000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-26",
+        "close": 20.4433,
+        "volume": 69457500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-27",
+        "close": 19.812,
+        "volume": 85549500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-30",
+        "close": 19.3447,
+        "volume": 102211500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-07-31",
+        "close": 19.876,
+        "volume": 76153500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-01",
+        "close": 20.056,
+        "volume": 151941000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-02",
+        "close": 23.3027,
+        "volume": 348225000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-03",
+        "close": 23.2113,
+        "volume": 204847500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-06",
+        "close": 22.7993,
+        "volume": 128464500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-07",
+        "close": 25.3047,
+        "volume": 463137000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-08",
+        "close": 24.6893,
+        "volume": 368568000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-09",
+        "close": 23.4967,
+        "volume": 257757000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-10",
+        "close": 23.6993,
+        "volume": 173280000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-13",
+        "close": 23.7607,
+        "volume": 156958500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-14",
+        "close": 23.176,
+        "volume": 104796000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-15",
+        "close": 22.5793,
+        "volume": 136519500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-16",
+        "close": 22.3633,
+        "volume": 90960000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-17",
+        "close": 20.3667,
+        "volume": 284379000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-20",
+        "close": 20.5627,
+        "volume": 261034500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-21",
+        "close": 21.46,
+        "volume": 197583000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-22",
+        "close": 21.4427,
+        "volume": 89190000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-23",
+        "close": 21.34,
+        "volume": 77209500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-24",
+        "close": 21.5213,
+        "volume": 54039000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-27",
+        "close": 21.2847,
+        "volume": 196189500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-28",
+        "close": 20.7907,
+        "volume": 114736500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-29",
+        "close": 20.334,
+        "volume": 111711000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-30",
+        "close": 20.21,
+        "volume": 108250500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-08-31",
+        "close": 20.1107,
+        "volume": 80626500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-04",
+        "close": 19.2633,
+        "volume": 125257500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-05",
+        "close": 18.716,
+        "volume": 115812000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-06",
+        "close": 18.73,
+        "volume": 112212000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-07",
+        "close": 17.5493,
+        "volume": 337378500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-10",
+        "close": 19.0333,
+        "volume": 214252500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-11",
+        "close": 18.6293,
+        "volume": 137550000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-12",
+        "close": 19.3693,
+        "volume": 150231000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-13",
+        "close": 19.2973,
+        "volume": 95104500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-14",
+        "close": 19.68,
+        "volume": 101484000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-17",
+        "close": 19.656,
+        "volume": 103314000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-18",
+        "close": 18.9973,
+        "volume": 248212500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-19",
+        "close": 19.9347,
+        "volume": 124423500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-20",
+        "close": 19.8887,
+        "volume": 110241000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-21",
+        "close": 19.94,
+        "volume": 75757500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-24",
+        "close": 19.9787,
+        "volume": 72645000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-25",
+        "close": 20.066,
+        "volume": 67225500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-26",
+        "close": 20.6387,
+        "volume": 117648000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-27",
+        "close": 20.5013,
+        "volume": 127636500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-09-28",
+        "close": 17.6513,
+        "volume": 504745500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-01",
+        "close": 20.7133,
+        "volume": 326664000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-02",
+        "close": 20.068,
+        "volume": 176152500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-03",
+        "close": 19.6533,
+        "volume": 119925000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-04",
+        "close": 18.7887,
+        "volume": 147213000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-05",
+        "close": 17.4633,
+        "volume": 269167500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-08",
+        "close": 16.704,
+        "volume": 202090500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-09",
+        "close": 17.52,
+        "volume": 180909000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-10",
+        "close": 17.1253,
+        "volume": 192229500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-11",
+        "close": 16.8153,
+        "volume": 122515500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-12",
+        "close": 17.252,
+        "volume": 108021000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-15",
+        "close": 17.306,
+        "volume": 93000000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-16",
+        "close": 18.4393,
+        "volume": 142896000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-17",
+        "close": 18.1187,
+        "volume": 129832500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-18",
+        "close": 17.594,
+        "volume": 81318000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-19",
+        "close": 17.3333,
+        "volume": 140632500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-22",
+        "close": 17.3967,
+        "volume": 84004500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-23",
+        "close": 19.6093,
+        "volume": 285417000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-24",
+        "close": 19.2333,
+        "volume": 300874500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-25",
+        "close": 20.9907,
+        "volume": 312610500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-26",
+        "close": 22.06,
+        "volume": 411382500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-29",
+        "close": 22.3233,
+        "volume": 217290000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-30",
+        "close": 21.9933,
+        "volume": 136900500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2018-10-31",
+        "close": 22.488,
+        "volume": 114364500,
+        "split_adjusted": true
+      }
+    ]
+  },
+  "responses": {
+    "route": {
+      "domains": [
+        "legal",
+        "finance"
+      ],
+      "primary_domain": "legal",
+      "complexity": "high",
+      "rationale": "The question asks about an SEC enforcement case and its effect on Tesla's share price."
+    },
+    "plan_legal": {
+      "case_name": "SEC v. Elon Musk, No. 1:18-cv-8865 (S.D.N.Y.)",
+      "tasks": [
+        "Find the SEC's complaint and press releases",
+        "Find the settlement terms and the court's approval",
+        "Collect reputable news on the case and Musk's response",
+        "Build a dated case timeline"
+      ],
+      "rationale": "An SEC civil enforcement case: the SEC's own releases and the court filings are the primary sources."
+    },
+    "plan_finance": {
+      "company": "Tesla",
+      "ticker": "TSLA",
+      "period": "6mo",
+      "events": [
+        {
+          "id": "tweet",
+          "date": "2018-08-07",
+          "label": "the 'funding secured' tweet"
+        },
+        {
+          "id": "sec_charges",
+          "date": "2018-09-27",
+          "label": "the SEC's fraud charges"
+        },
+        {
+          "id": "settlement",
+          "date": "2018-09-29",
+          "label": "the settlement"
+        },
+        {
+          "id": "court_approval",
+          "date": "2018-10-16",
+          "label": "the court's approval"
+        }
+      ],
+      "tasks": [
+        "Fetch TSLA daily prices from July to October 2018",
+        "Compute returns around each case event and over the period",
+        "Prepare a price chart with the case events marked"
+      ],
+      "rationale": "Measure the share-price reaction around each dated event in the case."
+    },
+    "extract_claims": {
+      "claims": [
+        {
+          "id": "f_tweet",
+          "text": "On 7 August 2018 Musk tweeted that he was considering taking Tesla private at $420 a share and that funding was secured.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "sec_charges",
+            "complaint"
+          ],
+          "domain": "legal",
+          "event_date": "2018-08-07",
+          "subject": "tweet"
+        },
+        {
+          "id": "f_alleged",
+          "text": "The SEC alleged that the statements were false and misleading because Musk had not discussed or confirmed key deal terms, including price, with any potential funding source.",
+          "claim_type": "allegation",
+          "source_ids": [
+            "complaint",
+            "sec_charges"
+          ],
+          "domain": "legal"
+        },
+        {
+          "id": "f_charged",
+          "text": "The SEC charged Musk with securities fraud in federal court on 27 September 2018.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "sec_charges",
+            "complaint"
+          ],
+          "domain": "legal",
+          "event_date": "2018-09-27",
+          "subject": "charges"
+        },
+        {
+          "id": "f_denial",
+          "text": "Musk called the SEC's action unjustified and said he had always acted in the best interests of investors.",
+          "claim_type": "party_claim",
+          "source_ids": [
+            "fortune_2018_09_28",
+            "techcrunch_2018_09_27"
+          ],
+          "domain": "legal"
+        },
+        {
+          "id": "f_settlement",
+          "text": "On 29 September 2018 Musk and Tesla settled without admitting or denying the allegations; each agreed to pay a $20 million penalty and Musk agreed to step down as chairman.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "sec_settlement"
+          ],
+          "domain": "legal",
+          "event_date": "2018-09-29",
+          "subject": "settlement"
+        },
+        {
+          "id": "f_judgment",
+          "text": "The court approved the settlement and entered its final judgment on 16 October 2018.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "sec_lr_24413",
+            "techcrunch_2018_10_16"
+          ],
+          "domain": "legal",
+          "event_date": "2018-10-16",
+          "subject": "final_judgment"
+        },
+        {
+          "id": "f_move_tweet",
+          "text": "Tesla shares returned {{calc:ret_tweet}} across the 'funding secured' tweet.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "src_prices"
+          ],
+          "domain": "finance",
+          "event_date": "2018-08-07",
+          "calculation_id": "ret_tweet"
+        },
+        {
+          "id": "f_move_charges",
+          "text": "Tesla shares returned {{calc:ret_sec_charges}} across the SEC's fraud charges.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "src_prices",
+            "fortune_2018_09_28"
+          ],
+          "domain": null,
+          "event_date": "2018-09-27",
+          "calculation_id": "ret_sec_charges"
+        },
+        {
+          "id": "f_move_settlement",
+          "text": "Tesla shares returned {{calc:ret_settlement}} across the settlement.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "src_prices",
+            "fortune_2018_10_01",
+            "techcrunch_2018_10_01"
+          ],
+          "domain": null,
+          "event_date": "2018-09-29",
+          "calculation_id": "ret_settlement"
+        },
+        {
+          "id": "f_concern",
+          "text": "Fortune reported that investors feared the lawsuit could lead to Musk being ousted as chief executive.",
+          "claim_type": "news_report",
+          "source_ids": [
+            "fortune_2018_09_28"
+          ],
+          "domain": "finance"
+        }
+      ]
+    },
+    "report": {
+      "title": "How the SEC's 2018 'funding secured' case affected Tesla's stock",
+      "sections": [
+        {
+          "kind": "executive_summary",
+          "heading": "Executive summary",
+          "paragraphs": [
+            {
+              "text": "On 27 September 2018 the SEC charged Elon Musk with securities fraud over his 7 August 2018 tweets about taking Tesla private, alleging that his claim that funding was secured was false and misleading. Two days later Musk and Tesla settled without admitting or denying the allegations, and the court entered a final judgment on 16 October 2018.",
+              "source_ids": [
+                "sec_charges",
+                "sec_settlement",
+                "sec_lr_24413"
+              ]
+            },
+            {
+              "text": "Tesla's shares returned {{calc:ret_sec_charges}} across the SEC's charges and {{calc:ret_settlement}} across the settlement, measured from the last close before each event to the first close after it.",
+              "source_ids": [
+                "src_prices",
+                "fortune_2018_09_28",
+                "fortune_2018_10_01"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "case_overview",
+          "heading": "Case overview",
+          "paragraphs": [
+            {
+              "text": "The SEC's complaint, filed in federal court in Manhattan, alleged that when Musk tweeted that funding was secured he had not discussed or confirmed key deal terms, including price, with any potential funding source. These are the SEC's allegations: the case was settled rather than tried, so no court ruled on whether they were true.",
+              "source_ids": [
+                "complaint",
+                "sec_charges"
+              ]
+            },
+            {
+              "text": "Musk called the SEC's action unjustified and said he had always acted in the best interests of investors.",
+              "source_ids": [
+                "fortune_2018_09_28",
+                "techcrunch_2018_09_27"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "legal_developments",
+          "heading": "Legal developments",
+          "paragraphs": [
+            {
+              "text": "Under the settlement announced on 29 September 2018, Musk and Tesla each agreed to pay a civil penalty, Musk agreed to step down as Tesla's chairman in favour of an independent chairman, and Tesla agreed to appoint two new independent directors.",
+              "source_ids": [
+                "sec_settlement"
+              ]
+            },
+            {
+              "text": "The court approved the settlement and entered its final judgment on 16 October 2018.",
+              "source_ids": [
+                "sec_lr_24413",
+                "techcrunch_2018_10_16"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "market_reaction",
+          "heading": "Market reaction",
+          "paragraphs": [
+            {
+              "text": "Shares returned {{calc:ret_tweet}} across the 'funding secured' tweet itself.",
+              "source_ids": [
+                "src_prices"
+              ]
+            },
+            {
+              "text": "They returned {{calc:ret_sec_charges}} from the close before the charges to the close after them. Fortune reported that investors feared the lawsuit could lead to Musk being ousted as chief executive.",
+              "source_ids": [
+                "src_prices",
+                "fortune_2018_09_28"
+              ]
+            },
+            {
+              "text": "After the settlement they returned {{calc:ret_settlement}}, which Fortune and TechCrunch reported as recovering the previous week's losses. Across the court's approval they returned {{calc:ret_court_approval}}.",
+              "source_ids": [
+                "src_prices",
+                "fortune_2018_10_01",
+                "techcrunch_2018_10_01",
+                "techcrunch_2018_10_16"
+              ]
+            },
+            {
+              "text": "Over the whole period shown, from early July to the end of October 2018, shares returned {{calc:ret_period}}.",
+              "source_ids": [
+                "src_prices"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "risk_factors",
+          "heading": "Reading the price moves",
+          "paragraphs": [
+            {
+              "text": "The price moves coincide with the case events, but share prices react to many things at once, so this report does not claim the case alone caused them.",
+              "source_ids": []
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

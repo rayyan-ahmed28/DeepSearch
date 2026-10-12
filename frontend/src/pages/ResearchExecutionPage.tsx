@@ -52,9 +52,14 @@ function ExecutionView({ id }: { id: string }) {
   // A backend run can't be rewound: "Run again" starts a fresh run with the same settings.
   const runAgain = async () => {
     setStarting(true);
-    const newId = await startRun(run.config);
-    setStarting(false);
-    navigate(`/research/${newId}`);
+    try {
+      const scenarioId = run.engine.kind === "backend" ? run.engine.scenarioId : undefined;
+      navigate(`/research/${await startRun(run.config, scenarioId)}`);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Could not start the run.");
+    } finally {
+      setStarting(false);
+    }
   };
 
   const agentsDone = AGENTS.filter((a) => state.agents[a.id].status === "done").length;

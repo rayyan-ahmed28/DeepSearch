@@ -11,6 +11,7 @@ import logging
 from dataclasses import dataclass
 
 from app.config import Settings
+from app.demo.scenarios import RecordedLLMProvider, Scenario, SnapshotPriceSource, load_scenarios
 from app.graph.build_graph import build_graph
 from app.graph.context import RunContext
 from app.models.schemas import ExecutionStatus, ResearchRequest, ResearchState
@@ -23,10 +24,15 @@ logger = logging.getLogger("deepsearch.runs")
 MAX_RUNS_IN_MEMORY = 50
 
 
+class UnknownScenario(KeyError):
+    pass
+
+
 @dataclass
 class Run:
     state: ResearchState
     bus: EventBus
+    scenario: Scenario | None = None
     task: asyncio.Task | None = None
 
 
@@ -37,32 +43,42 @@ class RunRegistry:
         self.fallback_llm = FakeLLMProvider()
         self.prices = prices or YahooPriceSource()
         self.graph = build_graph()
+        self.scenarios = load_scenarios()
         self.runs: dict[str, Run] = {}
 
     def get(self, research_id: str) -> Run | None:
         return self.runs.get(research_id)
 
     def start(self, request: ResearchRequest) -> Run:
+        scenario = None
+        if request.scenario_id:
+            scenario = self.scenarios.get(request.scenario_id)
+            if scenario is None:
+                raise UnknownScenario(request.scenario_id)
+            request = ResearchRequest(query=scenario.query, mode=scenario.mode, depth=scenario.depth)
         state = ResearchState(
             user_query=request.query.strip(),
             depth=request.depth,
             mode_override=None if request.mode == "auto" else request.mode,
-            demo_mode=self.settings.demo_mode,
+            demo_mode=self.settings.demo_mode or scenario is not None,
         )
-        run = Run(state=state, bus=EventBus())
+        run = Run(state=state, bus=EventBus(), scenario=scenario)
         self._forget_oldest_finished()
         self.runs[state.research_id] = run
         run.task = asyncio.create_task(self._execute(run), name=f"run-{state.research_id}")
         return run
 
     async def _execute(self, run: Run) -> None:
+        scenario = run.scenario
         ctx = RunContext(
             research_id=run.state.research_id,
             bus=run.bus,
-            llm=self.llm,
+            llm=RecordedLLMProvider(scenario) if scenario else self.llm,
             fallback_llm=self.fallback_llm,
             counter=CallCounter(self.settings.llm_call_budget),
-            prices=self.prices,
+            prices=SnapshotPriceSource(scenario.prices) if scenario and scenario.prices else self.prices,
+            scenario=scenario,
+            pace=self.settings.demo_pace_seconds if scenario else 0.0,
         )
         try:
             async for values in self.graph.astream(run.state, config={"configurable": {"ctx": ctx}}, stream_mode="values"):

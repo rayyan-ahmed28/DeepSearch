@@ -55,7 +55,7 @@ export const VERIFICATION_DOT: Record<ClaimStatus, string> = {
 
 /** The rules behind each status (mirrors backend `VerificationStatus`). */
 export const VERIFICATION_HELP: Record<ClaimStatus, string> = {
-  verified: "Backed by an official court or regulatory source, or the company's own filing or release",
+  verified: "Backed by an official court or regulatory source, the company's own filing or release, or computed in code from the cited data",
   corroborated: "Two or more independent sources agree",
   unverified: "No source, or a single non-official source",
   conflicting: "Sources disagree on a date or figure",

@@ -1,0 +1,1171 @@
+{
+  "id": "tesla_recent_performance",
+  "title": "Tesla's recent stock performance and what moved it",
+  "description": "Finance. Six months of Tesla's share price to October 2026, with the moves around its second-quarter results and third-quarter deliveries, from Tesla's own SEC filings and reputable news.",
+  "query": "Analyze the recent stock performance of Tesla and identify the major factors that influenced it.",
+  "mode": "auto",
+  "depth": "standard",
+  "data_as_of": "2026-10-12",
+  "sources": [
+    {
+      "id": "tesla_q2_deliveries",
+      "title": "Tesla Form 8-K, Exhibit 99.1: Second Quarter 2026 Production, Deliveries & Deployments",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026046717/exhibit99111111.htm",
+      "source_type": "company",
+      "published_date": "2026-07-02",
+      "retrieved_by": "financial_data",
+      "snippet": "In the second quarter, we produced over 450,000 vehicles, delivered over 480,000 vehicles and deployed 13.5 GWh of energy storage products."
+    },
+    {
+      "id": "tesla_q2_results",
+      "title": "Tesla Form 8-K: results for the quarter ended June 30, 2026",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026049213/tsla-20260722.htm",
+      "source_type": "company",
+      "published_date": "2026-07-22",
+      "retrieved_by": "financial_data",
+      "snippet": "On July 22, 2026, Tesla, Inc. released its financial results for the quarter ended June 30, 2026"
+    },
+    {
+      "id": "tesla_q3_deliveries",
+      "title": "Tesla Form 8-K, Exhibit 99.1: Third Quarter 2026 Production, Deliveries & Deployments",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026064366/exhibit991111111.htm",
+      "source_type": "company",
+      "published_date": "2026-10-02",
+      "retrieved_by": "financial_data",
+      "snippet": "In the third quarter, we produced over 464,000 vehicles, delivered over 486,000 vehicles and deployed 13.7 GWh of energy storage products."
+    },
+    {
+      "id": "electrek_q2_results",
+      "title": "Electrek: Tesla (TSLA) releases Q2 2026 financial results: record revenue, big profit miss",
+      "url": "https://electrek.co/2026/07/22/tesla-tsla-q2-2026-financial-results/",
+      "source_type": "reputable_news",
+      "published_date": "2026-07-22",
+      "retrieved_by": "web_research",
+      "snippet": null
+    },
+    {
+      "id": "electrek_q3_deliveries",
+      "title": "Electrek: Tesla (TSLA) Q3 2026 deliveries slip 2% to 486,532, but beat estimates",
+      "url": "https://electrek.co/2026/10/02/tesla-q3-2026-deliveries-486532/",
+      "source_type": "reputable_news",
+      "published_date": "2026-10-02",
+      "retrieved_by": "web_research",
+      "snippet": null
+    }
+  ],
+  "timeline": [],
+  "prices": {
+    "ticker": "TSLA",
+    "snapshot_taken": "2026-10-12",
+    "closes": [
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-13",
+        "close": 352.42,
+        "volume": 53617500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-14",
+        "close": 364.2,
+        "volume": 59979600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-15",
+        "close": 391.95,
+        "volume": 113810400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-16",
+        "close": 388.9,
+        "volume": 63515100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-17",
+        "close": 400.62,
+        "volume": 90640000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-20",
+        "close": 392.5,
+        "volume": 64603900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-21",
+        "close": 386.42,
+        "volume": 50530600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-22",
+        "close": 387.51,
+        "volume": 62362800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-23",
+        "close": 373.72,
+        "volume": 93969500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-24",
+        "close": 376.3,
+        "volume": 62893300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-27",
+        "close": 378.67,
+        "volume": 66735800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-28",
+        "close": 376.02,
+        "volume": 50864400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-29",
+        "close": 372.8,
+        "volume": 45384800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-04-30",
+        "close": 381.63,
+        "volume": 51076000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-01",
+        "close": 390.82,
+        "volume": 65338300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-04",
+        "close": 392.51,
+        "volume": 48765100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-05",
+        "close": 389.37,
+        "volume": 47780600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-06",
+        "close": 398.73,
+        "volume": 53465400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-07",
+        "close": 411.79,
+        "volume": 64294200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-08",
+        "close": 428.35,
+        "volume": 65050000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-11",
+        "close": 445.0,
+        "volume": 78376100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-12",
+        "close": 433.45,
+        "volume": 60569300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-13",
+        "close": 445.27,
+        "volume": 68283200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-14",
+        "close": 443.3,
+        "volume": 46070400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-15",
+        "close": 422.24,
+        "volume": 52688700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-18",
+        "close": 409.99,
+        "volume": 52474200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-19",
+        "close": 404.11,
+        "volume": 46500600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-20",
+        "close": 417.26,
+        "volume": 45294700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-21",
+        "close": 417.85,
+        "volume": 42636900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-22",
+        "close": 426.01,
+        "volume": 46104700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-26",
+        "close": 433.59,
+        "volume": 45658900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-27",
+        "close": 440.36,
+        "volume": 44656500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-28",
+        "close": 442.1,
+        "volume": 32435000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-05-29",
+        "close": 435.79,
+        "volume": 45176800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-01",
+        "close": 415.88,
+        "volume": 44937900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-02",
+        "close": 423.74,
+        "volume": 37596000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-03",
+        "close": 423.7,
+        "volume": 44500700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-04",
+        "close": 418.45,
+        "volume": 35323300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-05",
+        "close": 391.0,
+        "volume": 63420200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-08",
+        "close": 408.95,
+        "volume": 50328800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-09",
+        "close": 396.68,
+        "volume": 59940200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-10",
+        "close": 381.59,
+        "volume": 49695600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-11",
+        "close": 399.15,
+        "volume": 45324300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-12",
+        "close": 406.43,
+        "volume": 63514500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-15",
+        "close": 411.15,
+        "volume": 45620500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-16",
+        "close": 404.66,
+        "volume": 40255500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-17",
+        "close": 396.38,
+        "volume": 43534300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-18",
+        "close": 400.49,
+        "volume": 58384700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-22",
+        "close": 405.05,
+        "volume": 47819500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-23",
+        "close": 381.61,
+        "volume": 50420200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-24",
+        "close": 375.53,
+        "volume": 37081400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-25",
+        "close": 375.12,
+        "volume": 30138800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-26",
+        "close": 379.71,
+        "volume": 53434100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-29",
+        "close": 411.84,
+        "volume": 57645800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-06-30",
+        "close": 420.6,
+        "volume": 43385600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-01",
+        "close": 425.3,
+        "volume": 40127900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-02",
+        "close": 393.45,
+        "volume": 73717700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-06",
+        "close": 419.77,
+        "volume": 54727900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-07",
+        "close": 402.9,
+        "volume": 38149900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-08",
+        "close": 394.06,
+        "volume": 33844900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-09",
+        "close": 406.55,
+        "volume": 37835000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-10",
+        "close": 407.76,
+        "volume": 33410000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-13",
+        "close": 394.76,
+        "volume": 32809200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-14",
+        "close": 396.18,
+        "volume": 23385000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-15",
+        "close": 394.46,
+        "volume": 31549800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-16",
+        "close": 391.06,
+        "volume": 29269100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-17",
+        "close": 380.84,
+        "volume": 31394600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-20",
+        "close": 369.57,
+        "volume": 33901500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-21",
+        "close": 378.93,
+        "volume": 32735300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-22",
+        "close": 374.01,
+        "volume": 30646100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-23",
+        "close": 319.69,
+        "volume": 115606400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-24",
+        "close": 313.03,
+        "volume": 62760000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-27",
+        "close": 309.22,
+        "volume": 44919400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-28",
+        "close": 307.44,
+        "volume": 39802400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-29",
+        "close": 298.32,
+        "volume": 39478000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-30",
+        "close": 308.85,
+        "volume": 38005400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-07-31",
+        "close": 311.21,
+        "volume": 36630600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-03",
+        "close": 322.08,
+        "volume": 38281400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-04",
+        "close": 327.35,
+        "volume": 33318300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-05",
+        "close": 321.55,
+        "volume": 27820800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-06",
+        "close": 319.53,
+        "volume": 26033800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-07",
+        "close": 328.58,
+        "volume": 39492300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-10",
+        "close": 330.88,
+        "volume": 25003800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-11",
+        "close": 332.81,
+        "volume": 23345200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-12",
+        "close": 327.51,
+        "volume": 28698900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-13",
+        "close": 339.96,
+        "volume": 34708300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-14",
+        "close": 342.27,
+        "volume": 45437100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-17",
+        "close": 339.3,
+        "volume": 26037100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-18",
+        "close": 336.87,
+        "volume": 27994500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-19",
+        "close": 351.12,
+        "volume": 36735400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-20",
+        "close": 345.13,
+        "volume": 30766400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-21",
+        "close": 362.86,
+        "volume": 59224000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-24",
+        "close": 348.95,
+        "volume": 39190500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-25",
+        "close": 350.25,
+        "volume": 29816700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-26",
+        "close": 345.82,
+        "volume": 28573000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-27",
+        "close": 354.81,
+        "volume": 30136200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-28",
+        "close": 348.75,
+        "volume": 32972200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-08-31",
+        "close": 367.95,
+        "volume": 61732300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-01",
+        "close": 356.09,
+        "volume": 36193900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-02",
+        "close": 357.01,
+        "volume": 33951900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-03",
+        "close": 376.37,
+        "volume": 63601000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-04",
+        "close": 354.08,
+        "volume": 65018200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-08",
+        "close": 368.16,
+        "volume": 51078800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-09",
+        "close": 367.81,
+        "volume": 32564300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-10",
+        "close": 363.56,
+        "volume": 29667200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-11",
+        "close": 365.44,
+        "volume": 30153000,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-14",
+        "close": 358.97,
+        "volume": 32477200,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-15",
+        "close": 356.58,
+        "volume": 30317700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-16",
+        "close": 358.08,
+        "volume": 32177400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-17",
+        "close": 366.2,
+        "volume": 38924100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-18",
+        "close": 364.27,
+        "volume": 51922300,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-21",
+        "close": 375.3,
+        "volume": 36599600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-22",
+        "close": 378.9,
+        "volume": 28229900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-23",
+        "close": 380.12,
+        "volume": 33522500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-24",
+        "close": 377.94,
+        "volume": 26165700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-25",
+        "close": 372.11,
+        "volume": 45999500,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-28",
+        "close": 357.45,
+        "volume": 39452900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-29",
+        "close": 352.84,
+        "volume": 32492400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-09-30",
+        "close": 354.81,
+        "volume": 39235800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-10-01",
+        "close": 354.11,
+        "volume": 31080800,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-10-02",
+        "close": 370.59,
+        "volume": 55330100,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-10-05",
+        "close": 378.73,
+        "volume": 42232700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-10-06",
+        "close": 380.68,
+        "volume": 27735400,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-10-07",
+        "close": 377.81,
+        "volume": 25594600,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-10-08",
+        "close": 375.0,
+        "volume": 28394900,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-10-09",
+        "close": 382.7,
+        "volume": 38897700,
+        "split_adjusted": true
+      },
+      {
+        "ticker": "TSLA",
+        "date": "2026-10-12",
+        "close": 379.975,
+        "volume": 6877334,
+        "split_adjusted": true
+      }
+    ]
+  },
+  "responses": {
+    "route": {
+      "domains": [
+        "finance"
+      ],
+      "primary_domain": "finance",
+      "complexity": "standard",
+      "rationale": "The question is about share-price performance and its drivers; no legal matter is named."
+    },
+    "plan_legal": null,
+    "plan_finance": {
+      "company": "Tesla",
+      "ticker": "TSLA",
+      "period": "6mo",
+      "events": [
+        {
+          "id": "q2_deliveries",
+          "date": "2026-07-02",
+          "label": "the Q2 deliveries report"
+        },
+        {
+          "id": "q2_results",
+          "date": "2026-07-22",
+          "label": "the Q2 results"
+        },
+        {
+          "id": "q3_deliveries",
+          "date": "2026-10-02",
+          "label": "the Q3 deliveries report"
+        }
+      ],
+      "tasks": [
+        "Fetch six months of TSLA daily prices",
+        "Pull Tesla's quarterly delivery and results filings from EDGAR",
+        "Compute the period return, volatility, drawdown and the move around each report",
+        "Prepare a price chart"
+      ],
+      "rationale": "Tesla's own quarterly reports are the dated events most likely to explain moves in the period."
+    },
+    "extract_claims": {
+      "claims": [
+        {
+          "id": "t_period",
+          "text": "Tesla shares returned {{calc:ret_period}} over the six months covered.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "src_prices"
+          ],
+          "domain": "finance",
+          "calculation_id": "ret_period"
+        },
+        {
+          "id": "t_drawdown",
+          "text": "Tesla's maximum drawdown (largest fall from a peak) during the period was {{calc:dd_max}}.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "src_prices"
+          ],
+          "domain": "finance",
+          "calculation_id": "dd_max"
+        },
+        {
+          "id": "t_q2_deliveries",
+          "text": "Tesla reported delivering 480,126 vehicles in the second quarter of 2026.",
+          "claim_type": "company_statement",
+          "source_ids": [
+            "tesla_q2_deliveries"
+          ],
+          "domain": "finance",
+          "event_date": "2026-07-02",
+          "subject": "q2_deliveries"
+        },
+        {
+          "id": "t_q2_results",
+          "text": "Electrek reported that Tesla's second-quarter 2026 revenue was a record but that profit fell well short of expectations.",
+          "claim_type": "news_report",
+          "source_ids": [
+            "electrek_q2_results"
+          ],
+          "domain": "finance",
+          "event_date": "2026-07-22"
+        },
+        {
+          "id": "t_q2_move",
+          "text": "Tesla shares returned {{calc:ret_q2_results}} across the second-quarter results.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "src_prices",
+            "tesla_q2_results"
+          ],
+          "domain": "finance",
+          "event_date": "2026-07-22",
+          "calculation_id": "ret_q2_results"
+        },
+        {
+          "id": "t_q3_deliveries",
+          "text": "Tesla reported delivering 486,532 vehicles in the third quarter of 2026.",
+          "claim_type": "company_statement",
+          "source_ids": [
+            "tesla_q3_deliveries",
+            "electrek_q3_deliveries"
+          ],
+          "domain": "finance",
+          "event_date": "2026-10-02",
+          "subject": "q3_deliveries"
+        },
+        {
+          "id": "t_q3_vs_estimates",
+          "text": "Electrek reported that third-quarter deliveries beat analysts' consensus but were about 2% lower than a year earlier.",
+          "claim_type": "news_report",
+          "source_ids": [
+            "electrek_q3_deliveries"
+          ],
+          "domain": "finance",
+          "event_date": "2026-10-02"
+        },
+        {
+          "id": "t_q3_move",
+          "text": "Tesla shares returned {{calc:ret_q3_deliveries}} across the third-quarter deliveries report.",
+          "claim_type": "established_fact",
+          "source_ids": [
+            "src_prices",
+            "tesla_q3_deliveries"
+          ],
+          "domain": "finance",
+          "event_date": "2026-10-02",
+          "calculation_id": "ret_q3_deliveries"
+        },
+        {
+          "id": "t_next",
+          "text": "Tesla said it will report third-quarter 2026 results after the market closes on 21 October 2026.",
+          "claim_type": "company_statement",
+          "source_ids": [
+            "tesla_q3_deliveries"
+          ],
+          "domain": "finance",
+          "event_date": "2026-10-21"
+        }
+      ]
+    },
+    "report": {
+      "title": "Tesla's stock over the last six months: what moved it",
+      "sections": [
+        {
+          "kind": "executive_summary",
+          "heading": "Executive summary",
+          "paragraphs": [
+            {
+              "text": "Tesla shares returned {{calc:ret_period}} over the six months covered, with annualised volatility of {{calc:vol_annual}} and a maximum drawdown of {{calc:dd_max}}.",
+              "source_ids": [
+                "src_prices"
+              ]
+            },
+            {
+              "text": "Two company reports stand out as dated drivers: the second-quarter results on 22 July 2026, across which the shares returned {{calc:ret_q2_results}}, and the third-quarter deliveries report on 2 October 2026, across which they returned {{calc:ret_q3_deliveries}}.",
+              "source_ids": [
+                "src_prices",
+                "tesla_q2_results",
+                "tesla_q3_deliveries"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "financial_impact",
+          "heading": "What the company reported",
+          "paragraphs": [
+            {
+              "text": "Tesla's second-quarter results showed record revenue but profit well short of expectations, according to Electrek's report on the release.",
+              "source_ids": [
+                "tesla_q2_results",
+                "electrek_q2_results"
+              ]
+            },
+            {
+              "text": "Its third-quarter deliveries came in above analysts' consensus, though slightly below the same quarter a year earlier, as Electrek reported.",
+              "source_ids": [
+                "tesla_q3_deliveries",
+                "electrek_q3_deliveries"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "market_reaction",
+          "heading": "Market reaction",
+          "paragraphs": [
+            {
+              "text": "Around the second-quarter deliveries report on 2 July 2026 the shares returned {{calc:ret_q2_deliveries}}.",
+              "source_ids": [
+                "src_prices",
+                "tesla_q2_deliveries"
+              ]
+            },
+            {
+              "text": "Across the second-quarter results they returned {{calc:ret_q2_results}}, and across the third-quarter deliveries report {{calc:ret_q3_deliveries}}, each measured from the last close before the report to the first close after it.",
+              "source_ids": [
+                "src_prices",
+                "tesla_q2_results",
+                "tesla_q3_deliveries"
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "risk_factors",
+          "heading": "What to watch",
+          "paragraphs": [
+            {
+              "text": "Tesla has said it will report third-quarter results after the market closes on 21 October 2026. These moves coincide with company reports, but share prices react to many things at once, so this report does not claim the reports alone caused them.",
+              "source_ids": [
+                "tesla_q3_deliveries"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

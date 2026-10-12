@@ -33,6 +33,33 @@ def plan_finance(query: str, period: str) -> str:
     )
 
 
+def plan_legal(query: str) -> str:
+    return (
+        "You are the Legal Manager of DeepSearch. Identify the case or regulatory matter the question is "
+        "about and list 2-4 short research tasks for workers (court records, regulator releases, reputable "
+        "news, a dated timeline). Prefer official court and regulatory sources. Do not state findings.\n"
+        f"{GUARDRAILS}\n\nQuestion: {query}"
+    )
+
+
+def extract_claims(query: str, sources: list, calculations: list) -> str:
+    listed = [{"id": s.id, "title": s.title, "type": s.source_type.value, "excerpt": s.snippet} for s in sources]
+    calcs = [{"placeholder": f"{{{{calc:{c.id}}}}}", "description": c.description} for c in calculations]
+    return (
+        "You are the claim extractor in DeepSearch's Verification step. From the sources below, list the key "
+        "claims needed to answer the question. For each: the text, its claim_type (established_fact only for "
+        "what an official or court source states as fact or what a calculation shows; allegation, party_claim, "
+        "company_statement, regulatory_statement, news_report or analysis otherwise), the ids of the sources "
+        "that state it, its domain, any event date, and a shared subject key for claims about the same fact. "
+        "Write figures only as the calculation placeholders listed and set calculation_id. Do not judge "
+        "whether claims are verified: code applies the rules.\n"
+        f"{GUARDRAILS}\n\n"
+        f"Question: {query}\n"
+        f"Sources: {json.dumps(listed)}\n"
+        f"Calculations: {json.dumps(calcs)}"
+    )
+
+
 def report(query: str, context: dict[str, Any]) -> str:
     calcs = [
         {"placeholder": f"{{{{calc:{c['id']}}}}}", "description": c["description"], "value": c["result"], "unit": c.get("unit")}

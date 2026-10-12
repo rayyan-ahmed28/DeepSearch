@@ -121,8 +121,8 @@ Takes verified findings and produces the structured report: sections adapted to 
 
 LangGraph orchestrates agents, state, conditional routing, parallel execution, and retries.
 
-- Nodes: router, legal manager, finance manager, dispatch, workers, analysis, chart prep, verification, report architect.
-- Conditional routing on detected domains: legal only skips finance steps; finance only skips legal steps; both fan out in parallel and fan back in before dispatch.
+- Graph (`graph/build_graph.py`, full shape since Phase 4): router → legal_manager ∥ finance_manager → (waits for both) legal_records ∥ web_research ∥ financial_data → financial_data → data_analysis → (waits for all three) verification → report_architect.
+- Every node runs on every run and does nothing when its domain is out of scope, so the two join points always fire exactly once (no double-triggered verification). In live runs, agents not built yet (Legal Manager, Legal Records, Web Research, live claim extraction) report "skipped: not built yet"; in recorded demo runs they replay what was recorded.
 - **Technical detail that matters:** parallel branches that write to the same state lists need reducers, otherwise one branch overwrites the other's results. Implemented in `schemas.py`: `merge_by_id` (append; an item with the same id replaces the old one) for sources, claims, tasks, calculations and charts, and `operator.add` for plain lists. Nodes return only their new items. `tests/test_state_reducers.py` proves it with a real two-branch LangGraph graph.
 - Each node emits events to an event bus; a WebSocket handler forwards them to the browser.
 - Each worker is wrapped with bounded retries (2 attempts, short backoff). A failed worker never crashes the run (decision D12).
@@ -180,12 +180,15 @@ Not yet: `GET /api/research/history` (Phase 7), `GET /api/demo/scenarios` (Phase
 - Separate historical data (fact) from AI interpretation (analysis). Label assumptions. Cite underlying data sources.
 - Present market-impact reasoning as possibility, never as certainty or investment advice.
 
-### Verification rules (to be implemented, Phase 9)
+### Verification rules (implemented in `workers/verification.py`, Phase 4)
+The rules run in code on every claim; the LLM only extracts claims (D19) and can never set a status. Tested in `tests/test_verification_rules.py`.
 - A claim with no source stays unverified.
 - An allegation or party claim can never be upgraded to established fact unless an official court or regulatory source states the finding.
 - A claim backed by an official court or regulatory source is verified (a company statement is verified by the company's own filing or release).
-- Two or more independent source domains agreeing makes a claim corroborated.
-- Contradictory dates or figures across sources make a claim conflicting; show both.
+- A figure computed in code from the cited data (a claim with a `calculation_id`) is verified against that data (D31).
+- Two or more independent source domains agreeing makes a claim corroborated (the same outlet twice is not independent).
+- Contradictory dates or figures across sources make a claim conflicting; show both. In code: claims about the same fact share a `subject` key, and a subject whose claims disagree on date or figure marks all of them conflicting.
+- Guardrail in code: an "established fact" without an official, regulatory or calculation source is relabelled (company statement, news report, or analysis when unsourced).
 - **Number audit:** every number in the Financial Impact, Market Reaction and Data Analysis sections must come from a stored calculation or data point. With D20's placeholders this holds by construction; the audit checks that every placeholder resolves and flags any other number in the narrative (dates such as "10 April 2026" or "2026-04-10" and four-digit years are allowed). Citation ids that do not resolve are stripped and counted.
 
 ### Citations
@@ -230,6 +233,9 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D26 | If Gemini fails (quota, outage, bad JSON), the call falls back to the rule-based stand-in for that step; the failed call still counts against the budget and the activity feed says so | One failed call never kills a run (D12), and the fallback is visible |
 | D28 | Export = Markdown download plus browser print-to-PDF (print styles switch to black on white) | Closes the export open item at ₹0 with no server-side PDF library |
 | D29 | The Finance Manager uses the time frame the question names ("last year", "three months"); the depth setting is only the default | A question about "the last year" must not get six months of data |
+| D30 | The full graph shape and the deterministic verification rules were built in Phase 4 (pulled forward from Phases 5–6) | A recorded run must replay through the real pipeline, and statuses must be computed at replay time rather than copied from a file |
+| D31 | A figure computed in code from the cited price data counts as verified | It is checked against its data by construction; "corroborated" would wrongly imply two agreeing sources |
+| D32 | Recorded scenarios never fall back to the fictional sample: if the backend is down, the Dashboard says so and how to start it | A replay must never be mistaken for real recorded research |
 | D27 | Until recorded scenarios exist (Phase 4), backend Demo Mode = rule-based stand-in for the LLM + live Yahoo prices (yfinance needs no key) | Runs real data with zero keys; recorded runs (D21) arrive with the demo scenarios |
 | D24 | Gemini models: `gemini-3.5-flash-lite` by default (`gemini-3.8-flash` if the free tier allows), embeddings `gemini-embedding-001` | `gemini-2.0-flash` shut down 2026-06-01 and `text-embedding-004` on 2026-01-14; Google recommends 3.5 Flash-Lite or 3.8 Flash for new projects |
 
@@ -284,14 +290,14 @@ GPT Researcher (`assafelovic/gpt-researcher`, version 0.14.7 audited, a general-
 
 **Live Mode** uses the real free-tier services. **Demo Mode** replays real, frozen, dated data so the application can still show the full workflow if an API is down or a quota is exhausted. Demo Mode must still show Router, Managers, Workers, research activity, verification, charts and the final report, through the same pipeline and event stream as Live Mode. The UI shows a Demo badge with the snapshot date.
 
-**Three planned demo scenarios (Phase 6):**
-1. **Finance:** "Analyze the recent stock performance of Tesla and identify the major factors that influenced it."
-2. **Legal:** "Research the latest status of Google's antitrust case." Pin it to one named case and a dated milestone before snapshotting, because there are several Google antitrust cases and some are still open. For example: *United States v. Google LLC* (D.D.C., the search case) as of the snapshot date.
-3. **Legal + Finance (flagship):** the 2018 SEC action against Tesla and Elon Musk over the "funding secured" statement, and Tesla's stock reaction. Chosen because it is resolved, well documented, and has a clean market reaction. Yahoo prices are split-adjusted (Tesla split 5:1 in 2020 and 3:1 in 2022), so the September 2018 close appears as about $17.65, not the ~$265 quoted in news at the time. Report returns and percentage moves; if absolute prices are shown, label them split-adjusted.
+**The three recorded scenarios (done, Phase 4; data as of 12 October 2026)** live in `backend/app/demo/scenarios/*.json`:
+1. **Legal + Finance (flagship), `sec_v_musk_2018`:** "How did the SEC's 2018 'funding secured' case against Elon Musk affect Tesla's stock price?" Sources (all opened and checked): SEC press releases 2018-219 (charges) and 2018-226 (settlement), SEC Litigation Release 24413 (confirms the 16 October 2018 Final Judgment), the SEC complaint (Doc. 1, No. 1:18-cv-8865, S.D.N.Y.), TechCrunch (27 Sep, 1 Oct, 16 Oct 2018) and Fortune (28 Sep, 1 Oct 2018). Price snapshot: TSLA 2 July to 31 October 2018. Event windows: the tweet (+8.3%), the SEC charges (−14.5%), the settlement (+17.4%), the court's approval (+4.7%). Split check: the snapshot's closes × 15 reproduce the $307.52 and $264.77 quoted in 2018 news exactly. Dropped: CNBC (blocks access), a CNN Money article (404).
+2. **Legal, `us_v_google_search`:** "What is the latest status of United States v. Google LLC, the Justice Department's search antitrust case?" Pinned to *United States v. Google LLC*, No. 1:20-cv-03010 (D.D.C.). Sources: CourtListener docket entries 1033 (liability opinion, 5 Aug 2024), 1462 (Final Judgment, 5 Dec 2025), 1472 (Google's notice of appeal, 16 Jan 2026), 1485 (United States' notice of appeal, 3 Feb 2026), 1552 (second compliance status report, 17 Sep 2026); DOJ releases (20 Oct 2020, 5 Aug 2024, 2 Sep 2025); Alphabet's 10-Q for Q2 2026 (filed 22 Jul 2026); TechCrunch (5 Aug 2024, 2 Sep 2025). Status as of the recording: on appeal at the D.C. Circuit, with the district court supervising compliance. Dropped: Courthouse News (bot challenge, not bypassed), Law360 (paywall), Android Central (unreadable).
+3. **Finance, `tesla_recent_performance`:** "Analyze the recent stock performance of Tesla and identify the major factors that influenced it." Price snapshot: TSLA 13 April to 12 October 2026. Sources: Tesla's own 8-K filings (Q2 deliveries 2 Jul, Q2 results 22 Jul, Q3 deliveries 2 Oct 2026) and Electrek (22 Jul, 2 Oct 2026). Event windows: Q2 deliveries (−1.3%), Q2 results (−15.6%), Q3 deliveries (+7.0%). Dropped: CNBC and Forbes (block access).
 
-**Demo snapshots record the whole run** (D21): worker results and every LLM response (Router, Managers, Verification, Report Architect), so Demo Mode needs no keys and still runs the real graph.
+**How a recording replays (D21):** `RecordedLLMProvider` answers each LLM call with the recorded response, and `SnapshotPriceSource` serves the price snapshot (source id `src_prices`). Everything else runs live in the real graph: Data Analysis recomputes every figure from the snapshot, the Verification rules recompute every status, and the report builder re-audits the report. Recorded runs replay at a watchable pace (`DEMO_PACE_SECONDS`, default 0.8 s per step; 0 in tests). API: `GET /api/demo/scenarios`, and `POST /api/research` with `scenario_id`.
 
-**Demo data rules:** prices come from a one-time local script (`scripts/snapshot_demo_data.py`, run locally; this machine can reach Yahoo Finance); legal and news facts are gathered by research and every URL is verified before use; anything unverifiable is dropped. A validator test must reject fixtures whose citations do not resolve or whose numbers do not match the price data.
+**Demo data rules:** prices come from `backend/scripts/snapshot_prices.py <scenario_id> <TICKER> <start> <end>` (run locally; this machine reaches Yahoo Finance). Legal and news facts are gathered by research and every URL is opened before use; anything unverifiable is dropped. Snippets are verbatim only for public-domain government and court records (and short company-filing sentences); news sources carry no snippet. LLM narratives contain no typed numbers: figures are placeholders, and amounts stated by sources (e.g. a penalty) appear only in sourced findings. `tests/test_scenarios.py` rejects any scenario whose citations don't resolve, whose sources come from a worker that won't run for its domains, whose snapshot doesn't cover an event window, or whose narrative types its own numbers, and replays each one through the graph checking the audit and the expected statuses.
 
 ---
 
@@ -401,7 +407,9 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 - `api/`: the REST and WebSocket endpoints above; `main.py` `create_app()` takes an LLM and price source for tests.
 - Verified live on 2026-10-12: "Analyze the recent stock performance of Tesla" fetched 125-127 real TSLA trading days and produced a report whose figures all came from stored calculations (audit clean).
 
-**Not started:** Legal Manager, Legal Records, Web Research (GPT Researcher), EDGAR, Verification (D19), recorded demo scenarios (D21), persistence, rate limiting, live smoke script. The report is a minimal dict; its proper contract comes in Phase 3.
+**Phase 4 (done): recorded scenarios through the full graph, 64 passing tests.** Full graph shape (section 5); `graph/nodes/legal.py` (Legal Manager, Legal Records, Web Research: recorded replay, "not built yet" live); `graph/nodes/verification.py` with the rules engine `workers/verification.py`; event-window returns in `workers/analysis.py` (`EventWindow` in the Finance plan: close on the last trading day before an event to the first after it); `demo/scenarios.py` (scenario model, loader, `RecordedLLMProvider`, `SnapshotPriceSource`); `scripts/snapshot_prices.py`; tests `test_scenarios.py` and `test_verification_rules.py`.
+
+**Not started (live):** Legal Manager and Legal Records against CourtListener, Web Research via GPT Researcher, EDGAR fetching, live claim extraction (the rules already run), persistence, rate limiting, live smoke script.
 
 **Planned structure:** `app/main.py`, `config.py`, `api/` (routes and WebSocket), `graph/` (state, build_graph, `nodes/`), `workers/`, `providers/` (base, gemini, fake, openai stub), `demo/` (scenarios and replay runner), `models/schemas.py`, `db/`, `utils/` (logger, events). Keep the folder structure simple enough for students to explain in a viva.
 
@@ -422,15 +430,16 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Research Workspace | Done (Phase 1) |
 | Report contract and Final Report screen | Done (Phase 3) |
 | Settings, Landing | Not built (stubs) |
-| Backend | Foundation + finance slice (Phase 2) + report contract (Phase 3), 50 tests; frontend streams real runs over the WebSocket |
+| Backend | Full graph shape, finance path live, legal path and verification on recorded scenarios (Phase 4), 64 tests |
+| Demo scenarios | Three recorded runs with checked sources and real price snapshots, data as of 12 Oct 2026; Dashboard "Demo scenarios" section (Phase 4) |
 
 **Remaining work, in order (reordered 2026-10-12 so the riskiest integration happens early):**
 1. ~~Shared run store (keyed by research id) and the Research Workspace screen.~~ Done 2026-10-12.
 2. ~~Backend foundation plus one thin end-to-end slice~~ Done 2026-10-12: config, `LLMProvider` with the call counter, event bus with backlog replay, REST + WebSocket, and Router → Finance Manager → Financial Data → Data Analysis → a minimal Report, streamed into the existing Execution screen.
 3. ~~Report contract as a Pydantic model (with D20 placeholders), then the Final Report screen and citation panel.~~ Done 2026-10-12.
-4. Demo scenarios as recorded runs (D21), with real, dated data.
-5. Legal Manager and the remaining workers (Legal Records, Web Research via GPT Researcher, EDGAR).
-6. Verification (D19), Report Architect (D20) and the live smoke script.
+4. ~~Demo scenarios as recorded runs (D21), with real, dated data.~~ Done 2026-10-12, together with the full graph shape and the verification rules (D30).
+5. Live Legal Manager and workers: Legal Records (CourtListener), Web Research via GPT Researcher, EDGAR. The nodes already exist; this replaces their "not built yet" live branch.
+6. Live claim extraction for Verification (the rules are done), Gemini end-to-end, and the live smoke script.
 7. Persistence (history, saved reports) and full integration.
 8. Landing and Settings.
 9. Frontend hardening.
@@ -509,9 +518,9 @@ Still to review when built: Landing (counters like "100% auditable"), Settings (
 ## 19. Open items
 
 - **Rotate** the xAI, Tavily and LangChain keys that were pasted into an earlier chat session.
-- Confirm the three demo scenarios; pin the Google case to one named case and a dated milestone.
+- Shortly before the viva, refresh the scenarios: re-run `scripts/snapshot_prices.py` for `tesla_recent_performance`, re-check the Google docket for newer entries (an appeal argument may be scheduled), update `data_as_of`, then run the tests.
 - Check in AI Studio which Gemini models this project's free tier allows, and its daily limit.
-- Run the price snapshot script and later the live smoke script with real keys (both can run on this machine).
+- Run the live smoke script with real keys once it exists (Phase 6; this machine can reach every service).
 - Optional: a real name for the Dashboard greeting.
 - Optional: re-add pause/abort and a retrying state to the Execution screen.
 - Optional: upgrade Recharts 2 to 3 (npm reports 2.x as no longer maintained).

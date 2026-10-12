@@ -4,18 +4,28 @@ from __future__ import annotations
 
 from langchain_core.runnables import RunnableConfig
 
-from app.graph.context import get_ctx
+from app.graph.context import RunContext, get_ctx
 from app.models.llm_outputs import FinancePlan, ReportDraft
 from app.models.schemas import Domain, ExecutionStatus, ResearchState
 from app.providers import prompts
 from app.utils.report_builder import build_report
 
 
-def _gaps(state: ResearchState) -> list[str]:
+def _gaps(state: ResearchState, ctx: RunContext) -> list[str]:
     gaps = []
-    if Domain.LEGAL in state.detected_domains:
-        gaps.append("Legal research (court records, regulators, case status) is not built yet in this version.")
-    gaps.append("Web and news sources are not searched yet, and claims are not yet extracted or verified.")
+    if ctx.scenario is not None:
+        as_of = ctx.scenario.data_as_of.strftime("%d %B %Y").lstrip("0")
+        gaps.append(
+            f"This is a recorded demo run. Its sources and model responses were captured on {as_of} and replayed "
+            "through the live pipeline; every figure and verification status was recomputed by code during this replay."
+        )
+        gaps.append(f"Events after {as_of} are not covered.")
+        if ctx.scenario.prices is not None:
+            gaps.append("Share prices are split-adjusted closes, so they will not match prices quoted in news from the time; percentage moves are unaffected.")
+    else:
+        if Domain.LEGAL in state.detected_domains:
+            gaps.append("Legal research (court records, regulators, case status) is not built yet in this version.")
+        gaps.append("Web and news sources are not searched yet, and claims are not yet extracted or verified.")
     for error in state.errors:
         worker, _, detail = error.partition(": ")
         gaps.append(f"The {worker.replace('_', ' ')} step did not complete: {detail}.")
@@ -25,6 +35,7 @@ def _gaps(state: ResearchState) -> list[str]:
 async def report_architect_node(state: ResearchState, config: RunnableConfig) -> dict:
     ctx = get_ctx(config)
     ctx.status("report_architect", "running", "Composing report")
+    await ctx.pause()
 
     plan = FinancePlan.model_validate(state.research_plan["finance"]) if "finance" in state.research_plan else None
     prices = state.financial_data
@@ -44,7 +55,7 @@ async def report_architect_node(state: ResearchState, config: RunnableConfig) ->
         prompts.report(state.user_query, context), ReportDraft, context,
     )
 
-    report = build_report(state, draft, llm_provider=ctx.llm.name, gaps=_gaps(state))
+    report = build_report(state, draft, llm_provider=ctx.llm.name, gaps=_gaps(state, ctx))
     audit = report.audit
     if audit.figures_unresolved:
         ctx.log("report_architect", f"Removed {len(audit.figures_unresolved)} figure(s) with no stored calculation", level="warn")

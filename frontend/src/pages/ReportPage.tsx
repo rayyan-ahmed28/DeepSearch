@@ -9,7 +9,7 @@ import IntegrityPanel from "@/components/report/IntegrityPanel";
 import ReportBody from "@/components/report/ReportBody";
 import { useRun } from "@/hooks/useRun";
 import { reportToMarkdown, type Report } from "@/lib/report";
-import { engineLabel, useRunStore, type RunRecord } from "@/store/runStore";
+import { chartCaption as captionFor, engineLabel, useRunStore, type RunRecord } from "@/store/runStore";
 
 export default function ReportPage() {
   const { id = "demo-1" } = useParams();
@@ -100,10 +100,7 @@ function ReportDocument({ run, report }: { run: RunRecord; report: Report }) {
   const active = useActiveSection(report.sections.map((s) => s.id));
   const label = engineLabel(run);
   const generated = new Date(report.generated_at);
-  const isSample = run.engine.kind === "sample";
-  const chartCaption = isSample
-    ? "Synthetic sample data for a fictional ticker. Dashed lines mark case events from the timeline."
-    : "Daily closes from Yahoo Finance via yfinance (split-adjusted). Every figure in this report was computed in code from this series.";
+  const chartCaption = captionFor(run);
   const button =
     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/40 hover:border-outline text-on-surface font-body-sm text-body-sm transition-colors";
 

@@ -19,6 +19,7 @@ MANUAL_DOMAINS = {
 async def router_node(state: ResearchState, config: RunnableConfig) -> dict:
     ctx = get_ctx(config)
     ctx.status("gateway", "running", "Classifying domain")
+    await ctx.pause()
 
     if state.mode_override:
         # D7: a manual choice wins; no LLM call is spent, but the event is still logged.
@@ -35,12 +36,4 @@ async def router_node(state: ResearchState, config: RunnableConfig) -> dict:
 
     ctx.publish("domain_classified", {"domains": [d.value for d in domains], "rationale": rationale})
     ctx.status("gateway", "done")
-
-    # Agents not built yet in this version say so, instead of sitting idle.
-    if Domain.LEGAL in domains:
-        ctx.status("legal_manager", "skipped", "Not built yet (legal side comes in a later phase)")
-        ctx.status("legal_records", "skipped", "Not built yet")
-    ctx.status("web_research", "skipped", "Not built yet")
-    ctx.status("verification", "skipped", "Not built yet")
-
     return {"detected_domains": domains, "primary_domain": domains[0]}

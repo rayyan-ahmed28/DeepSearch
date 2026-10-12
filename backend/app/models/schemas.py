@@ -53,7 +53,8 @@ class VerificationStatus(str, Enum):
     """Set only by deterministic rules in the Verification node, never by an LLM.
 
     verified      backed by an official_court or regulatory source (for a
-                  company_statement: the company's own filing or release)
+                  company_statement: the company's own filing or release), or a
+                  figure computed in code from the cited data
     corroborated  two or more sources from independent domains agree
     unverified    no source, or one non-official source
     conflicting   sources disagree on a date or figure; both are shown
@@ -319,6 +320,8 @@ class ResearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     mode: Literal["auto", "legal", "finance", "legal_finance"] = "auto"
     depth: ResearchDepth = ResearchDepth.STANDARD
+    # Replay a recorded demo scenario (D21); its own query, mode and depth are used.
+    scenario_id: Optional[str] = Field(default=None, max_length=64)
 
 
 class WSEvent(BaseModel):

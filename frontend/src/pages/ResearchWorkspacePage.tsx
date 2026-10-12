@@ -14,7 +14,7 @@ import { useNow, useRun } from "@/hooks/useRun";
 import { AGENTS, type ClaimPayload, type SourcePayload } from "@/lib/executionEvents";
 import { formatElapsed } from "@/lib/format";
 import type { SourceFilter } from "@/lib/labels";
-import { engineLabel, isRunActive, runElapsedMs, useRunStore } from "@/store/runStore";
+import { chartCaption as captionFor, engineLabel, isRunActive, runElapsedMs, useRunStore } from "@/store/runStore";
 
 type FindingFilter = "all" | "legal" | "finance" | "cross";
 
@@ -49,11 +49,8 @@ function WorkspaceView({ id }: { id: string }) {
   const run = useRunStore((s) => s.runs[id])!;
   const state = run.state;
   const now = useNow(isRunActive(run));
-  const isSample = run.engine.kind === "sample";
   const finished = !isRunActive(run);
-  const chartCaption = isSample
-    ? "Synthetic sample data for a fictional ticker. Dashed lines mark case events from the timeline."
-    : "Daily closes from Yahoo Finance via yfinance (split-adjusted). Every figure here was computed in code from this series.";
+  const chartCaption = captionFor(run);
 
   const [findingFilter, setFindingFilter] = useState<FindingFilter>("all");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");

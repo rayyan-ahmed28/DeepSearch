@@ -12,15 +12,17 @@
  */
 import { create } from "zustand";
 
-import { RUN_NOT_FOUND_CLOSE_CODE, createResearch, researchSocketUrl } from "@/lib/api";
+import { RUN_NOT_FOUND_CLOSE_CODE, createResearch, researchSocketUrl, type LlmProvider } from "@/lib/api";
 import type { ExecEvent, TimedEvent } from "@/lib/executionEvents";
+import { formatDate } from "@/lib/format";
 import { DEFAULT_SAMPLE_QUERY, SAMPLE_RUNS, domainsForMode, type RunConfig } from "@/lib/runConfig";
 import { buildMockSequence } from "@/lib/sampleRun";
 import { initialStreamState, streamReducer, type StreamState } from "@/lib/streamReducer";
 
 export type RunEngine =
   | { kind: "sample"; note?: string }
-  | { kind: "backend"; llm: "gemini" | "fake" };
+  // A recorded demo scenario (D21) is a backend run with llm "recorded".
+  | { kind: "backend"; llm: LlmProvider; scenarioId?: string; dataAsOf?: string };
 
 export interface RunRecord {
   id: string;
@@ -42,8 +44,12 @@ export interface RunRecord {
 
 interface RunStore {
   runs: Record<string, RunRecord>;
-  /** Starts on the backend if it is running, otherwise as a sample replay. */
-  startRun: (config: RunConfig) => Promise<string>;
+  /**
+   * Starts on the backend if it is running, otherwise as a sample replay.
+   * With a scenario id it replays that recorded scenario, and throws if the
+   * backend is not running (a scenario never silently becomes the sample).
+   */
+  startRun: (config: RunConfig, scenarioId?: string) => Promise<string>;
   ensureSampleRun: (id: string) => void;
   /** Sample runs only. */
   restartRun: (id: string) => void;
@@ -194,11 +200,11 @@ function connect(id: string, attempt = 0) {
   };
 }
 
-function backendRecord(id: string, config: RunConfig, llm: "gemini" | "fake", startedAt: number): RunRecord {
+function backendRecord(id: string, config: RunConfig, engine: Extract<RunEngine, { kind: "backend" }>, startedAt: number): RunRecord {
   return {
     id,
     config,
-    engine: { kind: "backend", llm },
+    engine,
     sample: false,
     startedAt,
     finishedAt: null,
@@ -217,16 +223,18 @@ function newRunId(): string {
 export const useRunStore = create<RunStore>()((set, get) => ({
   runs: {},
 
-  startRun: async (config) => {
+  startRun: async (config, scenarioId) => {
     const clean: RunConfig = { ...config, query: config.query.trim() || DEFAULT_SAMPLE_QUERY };
-    const created = await createResearch(clean);
+    const created = await createResearch(clean, scenarioId);
     if (created.ok) {
-      const id = created.run.research_id;
-      set((s) => ({ runs: { ...s.runs, [id]: backendRecord(id, clean, created.run.llm_provider, Date.now()) } }));
+      const { research_id: id, llm_provider, scenario } = created.run;
+      const engine = { kind: "backend" as const, llm: llm_provider, scenarioId: scenario?.id, dataAsOf: scenario?.data_as_of };
+      set((s) => ({ runs: { ...s.runs, [id]: backendRecord(id, clean, engine, Date.now()) } }));
       save(get().runs);
       connect(id);
       return id;
     }
+    if (scenarioId) throw new Error(`${created.reason}: start the backend to replay the recorded scenarios.`);
     const id = newRunId();
     const record = sampleRecord(id, clean, { sample: false, startedAt: Date.now(), skipped: false, note: created.reason });
     set((s) => ({ runs: { ...s.runs, [id]: record } }));
@@ -266,7 +274,7 @@ useRunStore.setState({
     saved.map((r) => [
       r.id,
       r.engine?.kind === "backend"
-        ? backendRecord(r.id, r.config, r.engine.llm, r.startedAt)
+        ? backendRecord(r.id, r.config, r.engine, r.startedAt)
         : sampleRecord(r.id, r.config, { sample: false, startedAt: r.startedAt, skipped: r.skipped, note: r.engine?.note }),
     ]),
   ),
@@ -285,8 +293,27 @@ export function runElapsedMs(run: RunRecord, now: number): number {
   return Math.min(Math.max(now - run.startedAt, 0), run.durationMs);
 }
 
+/** Where the price chart's data came from, for the caption under it. */
+export function chartCaption(run: RunRecord): string {
+  if (run.engine.kind === "sample") {
+    return "Synthetic sample data for a fictional ticker. Dashed lines mark case events from the timeline.";
+  }
+  if (run.engine.llm === "recorded") {
+    const asOf = run.engine.dataAsOf ? formatDate(run.engine.dataAsOf) : "the recording date";
+    return `Daily closes from a Yahoo Finance snapshot taken ${asOf} (split-adjusted, so old prices won't match news quotes from the time). Every figure was recomputed in code from this series during the replay; dashed lines mark case events.`;
+  }
+  return "Daily closes from Yahoo Finance via yfinance (split-adjusted). Every figure here was computed in code from this series.";
+}
+
 /** How to describe where a run's events come from, honestly. */
 export function engineLabel(run: RunRecord): { badge: string; line: string } {
+  if (run.engine.kind === "backend" && run.engine.llm === "recorded") {
+    const asOf = run.engine.dataAsOf ? formatDate(run.engine.dataAsOf) : "the recording date";
+    return {
+      badge: `Recorded demo · data as of ${asOf}`,
+      line: `Recorded demo run · real sources and prices as of ${asOf}, replayed through the live pipeline`,
+    };
+  }
   if (run.engine.kind === "backend") {
     return run.engine.llm === "gemini"
       ? { badge: "Backend run · Gemini", line: "Backend run · live data · Gemini" }

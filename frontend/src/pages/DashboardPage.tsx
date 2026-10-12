@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Brain, ArrowRight, Paperclip, ChevronDown, ShieldCheck, ExternalLink } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
+import DemoScenarios from "@/components/dashboard/DemoScenarios";
 import { useNow } from "@/hooks/useRun";
 import { formatAgo } from "@/lib/format";
 import { domainChip } from "@/lib/labels";
@@ -200,6 +201,8 @@ export default function DashboardPage() {
             </div>
           </div>
         </section>
+
+        <DemoScenarios />
 
         {/* Suggested queries */}
         <section className="flex flex-col gap-3">

@@ -1,0 +1,190 @@
+{
+  "id": "us_v_google_search",
+  "title": "United States v. Google LLC (search): where the case stands",
+  "description": "Legal. The Justice Department's search-monopoly case against Google: the 2024 liability ruling, the 2025 remedies and final judgment, the 2026 appeals, and the latest compliance reporting.",
+  "query": "What is the latest status of United States v. Google LLC, the Justice Department's search antitrust case?",
+  "mode": "auto",
+  "depth": "standard",
+  "data_as_of": "2026-10-12",
+  "sources": [
+    {
+      "id": "doj_2020_complaint",
+      "title": "DOJ press release: Justice Department Sues Monopolist Google For Violating Antitrust Laws",
+      "url": "https://www.justice.gov/archives/opa/pr/justice-department-sues-monopolist-google-violating-antitrust-laws",
+      "source_type": "regulatory",
+      "published_date": "2020-10-20",
+      "retrieved_by": "web_research",
+      "snippet": "filed a civil antitrust lawsuit in the U.S. District Court for the District of Columbia to stop Google from unlawfully maintaining monopolies"
+    },
+    {
+      "id": "doj_2024_statement",
+      "title": "DOJ press release: Justice Department Statements on the U.S. District Court for the District of Columbia's Decision in U.S. v Google",
+      "url": "https://www.justice.gov/archives/opa/pr/justice-department-statements-us-district-court-district-columbias-decision-us-v-google",
+      "source_type": "regulatory",
+      "published_date": "2024-08-05",
+      "retrieved_by": "web_research",
+      "snippet": "This landmark decision holds Google accountable."
+    },
+    {
+      "id": "doj_2025_remedies",
+      "title": "DOJ press release: Department of Justice Wins Significant Remedies Against Google",
+      "url": "https://www.justice.gov/opa/pr/department-justice-wins-significant-remedies-against-google",
+      "source_type": "regulatory",
+      "published_date": "2025-09-02",
+      "retrieved_by": "web_research",
+      "snippet": "Google will have to make certain search index and user-interaction data available to certain competitors."
+    },
+    {
+      "id": "docket_1033",
+      "title": "Memorandum Opinion (redacted), United States v. Google LLC, No. 1:20-cv-03010 (D.D.C.), ECF No. 1033",
+      "url": "https://www.courtlistener.com/docket/18552824/1033/united-states-of-america-v-google-llc/",
+      "source_type": "official_court",
+      "published_date": "2024-08-05",
+      "retrieved_by": "legal_records",
+      "snippet": "REDACTED MEMORANDUM OPINION. Signed by Judge Amit P. Mehta on 8/5/24."
+    },
+    {
+      "id": "docket_1462",
+      "title": "Final Judgment, United States v. Google LLC, No. 1:20-cv-03010 (D.D.C.), ECF No. 1462",
+      "url": "https://www.courtlistener.com/docket/18552824/1462/united-states-of-america-v-google-llc/",
+      "source_type": "official_court",
+      "published_date": "2025-12-05",
+      "retrieved_by": "legal_records",
+      "snippet": "FINAL JUDGMENT. Signed by Judge Amit P. Mehta on 12/5/2025."
+    },
+    {
+      "id": "docket_1472",
+      "title": "Google's Notice of Appeal to the D.C. Circuit, United States v. Google LLC, ECF No. 1472",
+      "url": "https://www.courtlistener.com/docket/18552824/1472/united-states-of-america-v-google-llc/",
+      "source_type": "official_court",
+      "published_date": "2026-01-16",
+      "retrieved_by": "legal_records",
+      "snippet": "NOTICE OF APPEAL TO DC CIRCUIT COURT as to 1462 Order by GOOGLE LLC."
+    },
+    {
+      "id": "docket_1485",
+      "title": "United States' Notice of Appeal to the D.C. Circuit, United States v. Google LLC, ECF No. 1485",
+      "url": "https://www.courtlistener.com/docket/18552824/1485/united-states-of-america-v-google-llc/",
+      "source_type": "official_court",
+      "published_date": "2026-02-03",
+      "retrieved_by": "legal_records",
+      "snippet": "NOTICE OF APPEAL TO DC CIRCUIT COURT as to 1462 Order by UNITED STATES OF AMERICA."
+    },
+    {
+      "id": "docket_1552",
+      "title": "Second Status Report on Google's Compliance with the Final Judgment, United States v. Google LLC, ECF No. 1552",
+      "url": "https://www.courtlistener.com/docket/18552824/1552/united-states-of-america-v-google-llc/",
+      "source_type": "official_court",
+      "published_date": "2026-09-17",
+      "retrieved_by": "legal_records",
+      "snippet": "Second STATUS REPORT on Google's Compliance with the Final Judgment by UNITED STATES OF AMERICA."
+    },
+    {
+      "id": "alphabet_10q_2026q2",
+      "title": "Alphabet Inc. Form 10-Q for the quarter ended June 30, 2026 (legal matters)",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000071/goog-20260630.htm",
+      "source_type": "company",
+      "published_date": "2026-07-22",
+      "retrieved_by": "web_research",
+      "snippet": "In January 2026, we appealed the final judgment and moved to pause implementation of certain remedies."
+    },
+    {
+      "id": "techcrunch_2024_08_05",
+      "title": "TechCrunch: Google loses massive antitrust case over search, will appeal ruling",
+      "url": "https://techcrunch.com/2024/08/05/google-loses-massive-antitrust-case-over-search/",
+      "source_type": "reputable_news",
+      "published_date": "2024-08-05",
+      "retrieved_by": "web_research",
+      "snippet": null
+    },
+    {
+      "id": "techcrunch_2025_09_02",
+      "title": "TechCrunch: Google avoids breakup, but has to give up exclusive search deals in antitrust trial",
+      "url": "https://techcrunch.com/2025/09/02/google-avoids-breakup-but-has-to-give-up-exclusive-search-deals-in-antitrust-trial",
+      "source_type": "reputable_news",
+      "published_date": "2025-09-02",
+      "retrieved_by": "web_research",
+      "snippet": null
+    }
+  ],
+  "timeline": [
+    {"date": "2020-10-20", "label": "Lawsuit filed", "description": "The Justice Department and eleven states sue Google over search and search advertising.", "source_ids": ["doj_2020_complaint"]},
+    {"date": "2024-08-05", "label": "Liability ruling", "description": "Judge Mehta rules that Google unlawfully maintained its search monopoly.", "source_ids": ["docket_1033", "doj_2024_statement"]},
+    {"date": "2025-09-02", "label": "Remedies decision", "description": "The court bars exclusive distribution deals and orders data sharing and syndication.", "source_ids": ["doj_2025_remedies", "techcrunch_2025_09_02"]},
+    {"date": "2025-12-05", "label": "Final judgment", "description": "The court enters its Final Judgment.", "source_ids": ["docket_1462"]},
+    {"date": "2026-01-16", "label": "Google appeals", "description": "Google files a notice of appeal to the D.C. Circuit.", "source_ids": ["docket_1472"]},
+    {"date": "2026-02-03", "label": "United States appeals", "description": "The United States files its own notice of appeal.", "source_ids": ["docket_1485"]},
+    {"date": "2026-09-17", "label": "Compliance status report", "description": "The United States files its second report on Google's compliance with the Final Judgment.", "source_ids": ["docket_1552"]}
+  ],
+  "prices": null,
+  "responses": {
+    "route": {
+      "domains": ["legal"],
+      "primary_domain": "legal",
+      "complexity": "standard",
+      "rationale": "The question asks for the procedural status of a federal antitrust case; no market data is needed."
+    },
+    "plan_legal": {
+      "case_name": "United States v. Google LLC, No. 1:20-cv-03010 (D.D.C.)",
+      "tasks": [
+        "Pull the court docket for the key orders and notices of appeal",
+        "Find the Justice Department's releases on the ruling and remedies",
+        "Check Google's own latest disclosure about the case",
+        "Build a dated timeline up to the most recent filing"
+      ],
+      "rationale": "Case status is best established from the court docket, backed by the government's and the company's own statements."
+    },
+    "plan_finance": null,
+    "extract_claims": {
+      "claims": [
+        {"id": "g_filed", "text": "The Justice Department and eleven state attorneys general sued Google on 20 October 2020 over its search and search advertising practices.", "claim_type": "established_fact", "source_ids": ["doj_2020_complaint"], "domain": "legal", "event_date": "2020-10-20", "subject": "filing"},
+        {"id": "g_alleged", "text": "The government alleged that Google unlawfully maintained monopolies in search and search advertising through anticompetitive and exclusionary practices.", "claim_type": "allegation", "source_ids": ["doj_2020_complaint"], "domain": "legal"},
+        {"id": "g_liability", "text": "On 5 August 2024 the court found that Google had unlawfully maintained a monopoly in online search, in violation of Section 2 of the Sherman Act.", "claim_type": "established_fact", "source_ids": ["docket_1033", "doj_2024_statement", "techcrunch_2024_08_05"], "domain": "legal", "event_date": "2024-08-05", "subject": "liability_ruling"},
+        {"id": "g_google_response", "text": "Google said it would appeal, arguing that the court recognised it offers the best search engine.", "claim_type": "party_claim", "source_ids": ["techcrunch_2024_08_05"], "domain": "legal"},
+        {"id": "g_remedies", "text": "On 2 September 2025 the court barred Google from exclusive contracts for distributing Search, Chrome, Google Assistant and the Gemini app, and required it to share certain search data with, and offer syndication to, some competitors.", "claim_type": "established_fact", "source_ids": ["doj_2025_remedies", "techcrunch_2025_09_02"], "domain": "legal", "event_date": "2025-09-02", "subject": "remedies"},
+        {"id": "g_no_breakup", "text": "TechCrunch reported that the court did not order a break-up, such as a sale of Chrome, which the government had sought.", "claim_type": "news_report", "source_ids": ["techcrunch_2025_09_02"], "domain": "legal"},
+        {"id": "g_final_judgment", "text": "The court entered its Final Judgment on 5 December 2025.", "claim_type": "established_fact", "source_ids": ["docket_1462", "alphabet_10q_2026q2"], "domain": "legal", "event_date": "2025-12-05", "subject": "final_judgment"},
+        {"id": "g_google_appeal", "text": "Google filed a notice of appeal to the D.C. Circuit on 16 January 2026.", "claim_type": "established_fact", "source_ids": ["docket_1472", "alphabet_10q_2026q2"], "domain": "legal", "event_date": "2026-01-16", "subject": "google_appeal"},
+        {"id": "g_us_appeal", "text": "The United States filed its own notice of appeal on 3 February 2026; Alphabet reports that state attorneys general also appealed.", "claim_type": "established_fact", "source_ids": ["docket_1485", "alphabet_10q_2026q2"], "domain": "legal", "event_date": "2026-02-03", "subject": "us_appeal"},
+        {"id": "g_stay", "text": "Alphabet reports that the court denied Google's motion to pause certain remedies as premature.", "claim_type": "company_statement", "source_ids": ["alphabet_10q_2026q2"], "domain": "legal"},
+        {"id": "g_compliance", "text": "On 17 September 2026 the United States filed its second status report on Google's compliance with the Final Judgment.", "claim_type": "established_fact", "source_ids": ["docket_1552"], "domain": "legal", "event_date": "2026-09-17", "subject": "compliance_report"}
+      ]
+    },
+    "report": {
+      "title": "United States v. Google LLC: where the search case stands",
+      "sections": [
+        {
+          "kind": "executive_summary",
+          "heading": "Executive summary",
+          "paragraphs": [
+            {"text": "The case is on appeal. The district court found in August 2024 that Google unlawfully maintained its search monopoly, ordered behavioural remedies in September 2025 and entered its Final Judgment on 5 December 2025. Google appealed to the D.C. Circuit on 16 January 2026, and the United States appealed on 3 February 2026.", "source_ids": ["docket_1033", "doj_2025_remedies", "techcrunch_2025_09_02", "docket_1462", "docket_1472", "docket_1485"]},
+            {"text": "Meanwhile the district court is supervising compliance: the United States filed its second status report on Google's compliance with the Final Judgment on 17 September 2026.", "source_ids": ["docket_1552"]}
+          ]
+        },
+        {
+          "kind": "case_overview",
+          "heading": "Case overview",
+          "paragraphs": [
+            {"text": "The Justice Department and eleven states sued on 20 October 2020, alleging that Google unlawfully maintained monopolies in search and search advertising through anticompetitive and exclusionary practices.", "source_ids": ["doj_2020_complaint"]},
+            {"text": "In August 2024 Judge Amit Mehta ruled against Google. Google said at the time that it would appeal, arguing that the court had recognised it offers the best search engine.", "source_ids": ["docket_1033", "doj_2024_statement", "techcrunch_2024_08_05"]}
+          ]
+        },
+        {
+          "kind": "legal_developments",
+          "heading": "Legal developments",
+          "paragraphs": [
+            {"text": "The remedies decision of 2 September 2025 barred exclusive contracts for distributing Search, Chrome, Google Assistant and the Gemini app, and required Google to share certain search data with, and offer syndication to, some competitors. TechCrunch reported that the court did not order a break-up such as a sale of Chrome.", "source_ids": ["doj_2025_remedies", "techcrunch_2025_09_02"]},
+            {"text": "After the Final Judgment, both sides appealed. Alphabet's latest quarterly filing reports that the court denied Google's request to pause certain remedies as premature, and that state attorneys general also appealed.", "source_ids": ["docket_1462", "docket_1472", "docket_1485", "alphabet_10q_2026q2"]}
+          ]
+        },
+        {
+          "kind": "risk_factors",
+          "heading": "What could change",
+          "paragraphs": [
+            {"text": "The D.C. Circuit could uphold, narrow or widen the remedies, and its decision could itself be appealed. Until then the Final Judgment's requirements apply as the district court supervises them.", "source_ids": ["docket_1462", "docket_1552"]}
+          ]
+        }
+      ]
+    }
+  }
+}

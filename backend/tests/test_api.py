@@ -12,7 +12,7 @@ from tests.fixtures import FixturePrices
 
 @pytest.fixture
 def client():
-    settings = Settings(gemini_api_key="", tavily_api_key="secret-tavily-value")
+    settings = Settings(gemini_api_key="", tavily_api_key="secret-tavily-value", demo_pace_seconds=0)
     app = create_app(settings, llm=FakeLLMProvider(), prices=FixturePrices())
     with TestClient(app) as c:
         yield c
@@ -62,6 +62,24 @@ def test_unknown_run(client):
         with pytest.raises(WebSocketDisconnect) as closed:
             ws.receive_json()
     assert closed.value.code == 4404
+
+
+def test_demo_scenarios_list_and_replay(client):
+    listed = client.get("/api/demo/scenarios").json()
+    assert {s["id"] for s in listed} == {"sec_v_musk_2018", "us_v_google_search", "tesla_recent_performance"}
+    flagship = next(s for s in listed if s["id"] == "sec_v_musk_2018")
+    assert flagship["domains"] == ["legal", "finance"] and flagship["data_as_of"] == "2026-10-12"
+
+    created = client.post("/api/research", json={"query": flagship["query"], "scenario_id": "sec_v_musk_2018"}).json()
+    assert created["llm_provider"] == "recorded"
+    assert created["scenario"] == {"id": "sec_v_musk_2018", "data_as_of": "2026-10-12"}
+    with client.websocket_connect(f"/ws/research/{created['research_id']}") as ws:
+        events = collect(ws)
+    assert events[-1]["type"] == "report_ready"
+    assert events[-1]["payload"]["report"]["audit"]["clean"] is True
+
+    missing = client.post("/api/research", json={"query": "x", "scenario_id": "nope"})
+    assert missing.status_code == 404
 
 
 def test_request_validation(client):

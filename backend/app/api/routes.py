@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 
 from app.models.schemas import ResearchRequest
-from app.runs import Run, RunRegistry
+from app.runs import Run, RunRegistry, UnknownScenario
 
 router = APIRouter(prefix="/api")
 
@@ -35,18 +35,39 @@ def health(request: Request) -> dict:
             "tavily": bool(s.tavily_api_key),
             "courtlistener": bool(s.courtlistener_api_token),
         },
+        "scenarios": len(registry.scenarios),
     }
+
+
+@router.get("/demo/scenarios")
+def demo_scenarios(request: Request) -> list[dict]:
+    """Recorded demo runs (D21) that replay through the live pipeline."""
+    return [
+        {
+            "id": s.id,
+            "title": s.title,
+            "description": s.description,
+            "query": s.query,
+            "domains": [d.value for d in s.responses.route.domains],
+            "data_as_of": s.data_as_of.isoformat(),
+        }
+        for s in _registry(request).scenarios.values()
+    ]
 
 
 @router.post("/research", status_code=201)
 async def create_research(body: ResearchRequest, request: Request) -> dict:
     # async on purpose: the run is started as a task on the server's event loop.
     registry = _registry(request)
-    run = registry.start(body)
+    try:
+        run = registry.start(body)
+    except UnknownScenario:
+        raise HTTPException(status_code=404, detail=f"Unknown demo scenario: {body.scenario_id}")
     return {
         "research_id": run.state.research_id,
-        "llm_provider": registry.llm.name,
+        "llm_provider": "recorded" if run.scenario else registry.llm.name,
         "demo_mode": run.state.demo_mode,
+        "scenario": {"id": run.scenario.id, "data_as_of": run.scenario.data_as_of.isoformat()} if run.scenario else None,
     }
 
 

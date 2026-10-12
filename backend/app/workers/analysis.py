@@ -7,15 +7,40 @@ cite it by id ({{calc:<id>}}) and a viva examiner can see how it was made.
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 
 import pandas as pd
 
+from app.models.llm_outputs import EventWindow
 from app.models.schemas import Calculation, ChartSpec, FinancialDataPoint
 
 TRADING_DAYS_PER_YEAR = 252
 
 
-def analyse_prices(points: list[FinancialDataPoint]) -> tuple[list[Calculation], ChartSpec]:
+def event_window_return(close: pd.Series, event: EventWindow, ticker: str) -> Calculation | None:
+    """Close on the last trading day before the event -> close on the first trading day after it.
+
+    Using the days either side means news released after the close (or on a
+    weekend) is still captured. Returns None if the event is outside the data.
+    """
+    before = close[close.index < event.date]
+    after = close[close.index > event.date]
+    if before.empty or after.empty:
+        return None
+    start_day, end_day = before.index[-1], after.index[0]
+    change = (after.iloc[0] / before.iloc[-1] - 1) * 100
+    return Calculation(
+        id=f"ret_{event.id}",
+        description=f"{ticker} return across {event.label} ({start_day} close to {end_day} close)",
+        result=round(float(change), 2),
+        method="pandas: close on first trading day after the event / close on last trading day before - 1",
+        unit="%",
+    )
+
+
+def analyse_prices(
+    points: list[FinancialDataPoint], events: Iterable[EventWindow] = ()
+) -> tuple[list[Calculation], ChartSpec]:
     if len(points) < 2:
         raise ValueError("Need at least two prices to analyse")
     ticker = points[0].ticker
@@ -50,6 +75,11 @@ def analyse_prices(points: list[FinancialDataPoint]) -> tuple[list[Calculation],
             unit="%",
         ),
     ]
+    for event in events:
+        calc = event_window_return(close, event, ticker)
+        if calc is not None:
+            calculations.append(calc)
+
     chart = ChartSpec(
         id="chart_price",
         type="line",

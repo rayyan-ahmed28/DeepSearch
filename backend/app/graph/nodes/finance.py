@@ -1,4 +1,8 @@
-"""Finance side of the slice: Finance Manager (LLM plan) and two deterministic workers."""
+"""Finance side: Finance Manager (LLM plan) and two deterministic workers.
+
+Every node does nothing when Finance is not in the run's domains, so the
+graph's shape (and its join points) is the same for every run.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +13,7 @@ from langchain_core.runnables import RunnableConfig
 
 from app.graph.context import get_ctx
 from app.models.llm_outputs import FinancePlan
-from app.models.schemas import ResearchState, Task, TaskStatus
+from app.models.schemas import Domain, ResearchState, Task, TaskStatus
 from app.providers import prompts
 from app.workers.analysis import analyse_prices
 from app.workers.market_data import MarketDataError
@@ -28,7 +32,10 @@ def _clean_ticker(raw: str | None) -> str | None:
 
 async def finance_manager_node(state: ResearchState, config: RunnableConfig) -> dict:
     ctx = get_ctx(config)
+    if Domain.FINANCE not in state.detected_domains:
+        return {}
     ctx.status("finance_manager", "running", "Planning financial tasks")
+    await ctx.pause()
     default_period = PERIOD_BY_DEPTH[state.depth.value]  # used unless the question names a time frame
     plan = await ctx.ask(
         "finance_manager", "plan_finance", "Drafting financial research plan",
@@ -49,6 +56,8 @@ async def finance_manager_node(state: ResearchState, config: RunnableConfig) -> 
 
 async def financial_data_node(state: ResearchState, config: RunnableConfig) -> dict:
     ctx = get_ctx(config)
+    if "finance" not in state.research_plan:
+        return {}
     plan = FinancePlan.model_validate(state.research_plan["finance"])
     task = next(t for t in state.tasks if t.worker == "financial_data")
 
@@ -59,7 +68,8 @@ async def financial_data_node(state: ResearchState, config: RunnableConfig) -> d
         return {"tasks": [failed], "errors": ["financial_data: no company or ticker identified in the query"]}
 
     ctx.status("financial_data", "running", "Fetching price history")
-    ctx.log("financial_data", f"Fetching daily prices for {plan.ticker} ({plan.period}) from {ctx.prices.name}")
+    await ctx.pause()
+    ctx.log("financial_data", f"Fetching daily prices for {plan.ticker} from {ctx.prices.name}")
     last_error: Exception | None = None
     for attempt in range(1, FETCH_ATTEMPTS + 1):
         try:
@@ -76,26 +86,38 @@ async def financial_data_node(state: ResearchState, config: RunnableConfig) -> d
         failed = task.model_copy(update={"status": TaskStatus.FAILED, "error": str(last_error)})
         return {"tasks": [failed], "errors": [f"financial_data: {last_error}"]}
 
-    source = ctx.prices.source_for(plan.ticker, points)
-    ctx.publish("source_found", source.model_dump(mode="json"))
-    ctx.log("financial_data", f"Price history loaded: {len(points)} trading days")
+    sources = [ctx.prices.source_for(plan.ticker, points)]
+    if ctx.scenario is not None:  # filings this worker retrieved when the scenario was recorded
+        sources += [s for s in ctx.scenario.sources if s.retrieved_by == "financial_data"]
+    for source in sources:
+        ctx.publish("source_found", source.model_dump(mode="json"))
+    ctx.log("financial_data", f"Price history loaded: {len(points)} trading days ({points[0].date} to {points[-1].date})")
     ctx.status("financial_data", "done")
     done = task.model_copy(update={"status": TaskStatus.DONE})
-    return {"financial_data": points, "sources": [source], "tasks": [done]}
+    return {"financial_data": points, "sources": sources, "tasks": [done]}
 
 
 async def data_analysis_node(state: ResearchState, config: RunnableConfig) -> dict:
     ctx = get_ctx(config)
+    if "finance" not in state.research_plan:
+        return {}
+    plan = FinancePlan.model_validate(state.research_plan["finance"])
     task = next(t for t in state.tasks if t.worker == "calculator")
     if len(state.financial_data) < 2:
         ctx.status("calculator", "skipped", "No price data to analyse")
         return {"tasks": [task.model_copy(update={"status": TaskStatus.FAILED, "error": "No price data"})]}
 
     ctx.status("calculator", "running", "Computing returns")
-    calculations, chart = analyse_prices(state.financial_data)
+    await ctx.pause()
+    calculations, chart = analyse_prices(state.financial_data, plan.events)
     for calc in calculations:
         ctx.publish("calculation_ready", calc.model_dump(mode="json"))
-    ctx.log("calculator", "Computed period return, volatility and maximum drawdown with pandas")
+    windows = len(calculations) - 3
+    extra = f", plus {windows} event-window return(s)" if windows else ""
+    ctx.log("calculator", f"Computed period return, volatility and maximum drawdown with pandas{extra}")
+    for event in plan.events:
+        if not any(c.id == f"ret_{event.id}" for c in calculations):
+            ctx.log("calculator", f"No price data around {event.label} ({event.date}); window skipped", level="warn")
     ctx.publish("chart_ready", chart.model_dump(mode="json"))
     ctx.status("calculator", "done")
     done = task.model_copy(update={"status": TaskStatus.DONE})

@@ -33,6 +33,7 @@ class Settings:
     sec_edgar_user_agent: str = ""
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173"])
     llm_call_budget: int = 8  # decision D9
+    demo_pace_seconds: float = 0.8  # recorded runs replay at a watchable pace (0 in tests)
 
     @property
     def has_gemini(self) -> bool:
@@ -65,4 +66,5 @@ def load_settings() -> Settings:
         courtlistener_api_token=_env("COURTLISTENER_API_TOKEN"),
         sec_edgar_user_agent=_env("SEC_EDGAR_USER_AGENT"),
         cors_origins=origins,
+        demo_pace_seconds=float(_env("DEMO_PACE_SECONDS", "0.8") or 0.8),
     )
