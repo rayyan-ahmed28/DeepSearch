@@ -31,7 +31,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3.5 group transition-all duration-300 hover:opacity-90 active:scale-[0.99]">
-            <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface-container flex items-center justify-center p-0.5 shadow-md group-hover:shadow-[0_0_12px_rgba(135,129,255,0.35)] transition-all">
+            <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface-container flex items-center justify-center p-0.5 shadow-md group-hover:shadow-[0_0_12px_rgb(var(--c-primary-container)/0.35)] transition-all">
               <BrandMark size={36} />
             </div>
             <div className="flex flex-col">
@@ -103,7 +103,7 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="you@example.com"
-                  className="w-full h-11 px-3.5 bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg outline-none shadow-[0_0_0_1.5px_#8781ff,0_0_12px_rgba(135,129,255,0.25)] transition-all"
+                  className="w-full h-11 px-3.5 bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg outline-none shadow-[0_0_0_1.5px_rgb(var(--c-primary-container)),0_0_12px_rgb(var(--c-primary-container)/0.25)] transition-all"
                 />
                 <AtSign size={18} className="absolute right-3 top-3 text-primary" />
               </div>
@@ -118,7 +118,7 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••••••"
-                  className="w-full h-11 pl-3.5 pr-10 bg-surface-container-low text-on-surface font-body-md text-body-md rounded-lg outline-none hover:bg-surface-container-lowest focus:bg-surface-container-lowest focus:shadow-[0_0_0_1.5px_#8781ff] transition-all"
+                  className="w-full h-11 pl-3.5 pr-10 bg-surface-container-low text-on-surface font-body-md text-body-md rounded-lg outline-none hover:bg-surface-container-lowest focus:bg-surface-container-lowest focus:shadow-[0_0_0_1.5px_rgb(var(--c-primary-container))] transition-all"
                 />
                 <button
                   type="button"
@@ -148,7 +148,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full h-11 mt-2 rounded-lg bg-primary-container text-on-primary-container font-headline-sm text-headline-sm font-medium hover:bg-primary hover:shadow-[0_0_16px_rgba(135,129,255,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md"
+              className="w-full h-11 mt-2 rounded-lg bg-primary-container text-on-primary-container font-headline-sm text-headline-sm font-medium hover:bg-primary hover:shadow-[0_0_16px_rgb(var(--c-primary-container)/0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md"
             >
               <span>Log in</span>
               <ArrowRight size={18} />
@@ -166,7 +166,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="w-full h-11 rounded-lg bg-surface-container-low hover:bg-surface-container-high hover:shadow-[0_0_12px_rgba(123,208,255,0.25)] active:scale-[0.98] text-on-surface font-headline-sm text-headline-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="w-full h-11 rounded-lg bg-surface-container-low hover:bg-surface-container-high hover:shadow-[0_0_12px_rgb(var(--c-secondary)/0.25)] active:scale-[0.98] text-on-surface font-headline-sm text-headline-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               <Terminal size={18} className="text-secondary" />
               <span>Continue as guest (Demo Mode)</span>

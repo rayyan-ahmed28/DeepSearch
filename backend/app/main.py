@@ -30,7 +30,7 @@ def create_app(
 ) -> FastAPI:
     """Build the app. Tests pass their own LLM, price source, live workers and store; nothing else changes."""
     settings = settings or load_settings()
-    app = FastAPI(title="DeepSearch API", version="0.2.0")
+    app = FastAPI(title="DeepSearch API", version="0.8.0")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

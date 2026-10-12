@@ -30,7 +30,8 @@ def collect(ws) -> list[dict]:
 def test_health_reports_configuration_without_secrets(client):
     body = client.get("/api/health").json()
     assert body["demo_mode"] is True and body["llm_provider"] == "fake"
-    assert body["providers"] == {"gemini": False, "tavily": True, "courtlistener": False}
+    assert body["providers"] == {"gemini": False, "tavily": True, "courtlistener": False, "sec_edgar": False}
+    assert body["llm_call_budget"] == 8 and body["web_search"] == "fake web search" and body["history_runs"] == 0
     assert "secret-tavily-value" not in str(body)
 
 

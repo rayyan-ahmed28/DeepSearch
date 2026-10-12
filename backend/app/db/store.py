@@ -116,6 +116,10 @@ class RunStore:
             row = self._db.execute(f"SELECT {SUMMARY_COLUMNS} FROM runs WHERE research_id = ?", (research_id,)).fetchone()
         return _summary(row) if row else None
 
+    def count(self) -> int:
+        with self._lock:
+            return self._db.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+
     def list(self, saved_only: bool = False, limit: int = 50) -> list[dict[str, Any]]:
         where = "WHERE saved = 1" if saved_only else ""
         with self._lock:

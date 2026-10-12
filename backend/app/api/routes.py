@@ -33,14 +33,20 @@ def health(request: Request) -> dict:
     s = registry.settings
     return {
         "status": "ok",
+        "version": request.app.version,
         "demo_mode": s.demo_mode,
         "llm_provider": registry.llm.name,
+        "llm_model": s.gemini_model if registry.llm.name == "gemini" else None,
+        "llm_call_budget": s.llm_call_budget,
+        "web_search": registry.live.web.name if registry.live.web else None,
         "providers": {
             "gemini": s.has_gemini,
             "tavily": bool(s.tavily_api_key),
             "courtlistener": bool(s.courtlistener_api_token),
+            "sec_edgar": bool(s.sec_edgar_user_agent),
         },
         "scenarios": len(registry.scenarios),
+        "history_runs": registry.store.count(),
     }
 
 

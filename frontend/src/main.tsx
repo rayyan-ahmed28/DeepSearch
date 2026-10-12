@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
+import "./store/settingsStore"; // applies the saved theme, accent, scale and motion
 // Fonts ship with the app (D18) so it looks the same offline on demo day.
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";

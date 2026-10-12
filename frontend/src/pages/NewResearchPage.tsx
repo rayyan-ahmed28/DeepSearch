@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Brain,
   Paperclip,
@@ -14,18 +14,20 @@ import {
   ChevronDown,
   RotateCcw,
   Activity,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
 import ToggleSwitch from "@/components/common/ToggleSwitch";
 import type { ResearchDepth, ResearchMode } from "@/lib/runConfig";
 import { useRunStore } from "@/store/runStore";
+import { useSettings } from "@/store/settingsStore";
 
 type DomainId = ResearchMode;
 type DepthId = ResearchDepth;
 
 const DOMAINS: { id: DomainId; icon: typeof Network; iconClass: string; title: string; badge?: string; description: string }[] = [
-  { id: "auto", icon: Network, iconClass: "bg-primary/10 text-primary", title: "Automatic", badge: "Active", description: "AI domain routing — auto-detects legal & financial scope" },
+  { id: "auto", icon: Network, iconClass: "bg-primary/10 text-primary", title: "Automatic", badge: "Router", description: "AI domain routing — auto-detects legal & financial scope" },
   { id: "legal", icon: Gavel, iconClass: "bg-secondary/10 text-secondary", title: "Legal", description: "Court records, federal dockets, state precedents, appellate records" },
   { id: "finance", icon: LineChart, iconClass: "bg-tertiary/10 text-tertiary", title: "Finance", description: "SEC filings, financial ratios, market data" },
   { id: "legal_finance", icon: Shuffle, iconClass: "bg-surface-container-highest text-on-surface", title: "Legal + Finance", badge: "Dual-Domain", description: "Simultaneous legal research and financial analysis" },
@@ -51,8 +53,9 @@ const DEFAULT_TOGGLES = {
 export default function NewResearchPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [domain, setDomain] = useState<DomainId>("auto");
-  const [depth, setDepth] = useState<DepthId>("standard");
+  // Starting values come from Settings → Research defaults.
+  const [domain, setDomain] = useState<DomainId>(() => useSettings.getState().defaultMode);
+  const [depth, setDepth] = useState<DepthId>(() => useSettings.getState().defaultDepth);
   const [advancedOpen, setAdvancedOpen] = useState(true);
   const [toggles, setToggles] = useState(DEFAULT_TOGGLES);
   const startRun = useRunStore((s) => s.startRun);
@@ -92,15 +95,14 @@ export default function NewResearchPage() {
               Configure the target domain and research depth to start a multi-agent investigation.
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start md:self-center px-4 py-1.5 rounded-full bg-surface-container-low shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-tertiary" />
-            </span>
-            <span className="font-label-code-sm text-label-code-sm text-tertiary tracking-wider font-semibold">
-              LOCAL DEMO SESSION
-            </span>
-          </div>
+          <Link
+            to="/settings"
+            title="Starting depth and domains come from Settings"
+            className="flex items-center gap-2 self-start md:self-center px-4 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/30 hover:border-primary/50 shadow-sm transition-colors"
+          >
+            <SlidersHorizontal size={13} className="text-primary" />
+            <span className="font-label-code-sm text-label-code-sm text-on-surface-variant tracking-wider">DEFAULTS FROM SETTINGS</span>
+          </Link>
         </div>
 
         {/* Query input */}
@@ -254,6 +256,12 @@ export default function NewResearchPage() {
             </button>
           </div>
 
+          {advancedOpen && (
+            <p className="font-body-sm text-body-sm text-outline -mt-2">
+              Preview: these source and output preferences are not sent to the backend yet. Every run uses the full
+              source hierarchy and includes charts, timeline and evidence where its domains need them.
+            </p>
+          )}
           {advancedOpen && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 pt-2">
               <ToggleSwitch

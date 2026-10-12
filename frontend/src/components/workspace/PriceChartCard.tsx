@@ -4,7 +4,7 @@ import { LineChart as LineChartIcon } from "lucide-react";
 import type { CalculationPayload, ChartPayload, TimelineEntry } from "@/lib/executionEvents";
 import { formatCalculation, formatDate, formatShortDate } from "@/lib/format";
 
-const AXIS_TICK = { fill: "#918fa1", fontSize: 10, fontFamily: "IBM Plex Mono" };
+const AXIS_TICK = { fill: "rgb(var(--c-outline))", fontSize: 10, fontFamily: "IBM Plex Mono" };
 
 function prefersReducedMotion(): boolean {
   try {
@@ -39,29 +39,29 @@ export default function PriceChartCard({ chart, markers, calculations, caption }
       <div className="w-full h-56 bg-surface-container-lowest rounded-lg border border-outline-variant/20 p-2">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chart.data} margin={{ top: 16, right: 12, bottom: 0, left: 0 }}>
-            <CartesianGrid stroke="#464555" strokeOpacity={0.3} vertical={false} />
-            <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={formatShortDate} minTickGap={28} stroke="#464555" />
-            <YAxis domain={["auto", "auto"]} tick={AXIS_TICK} width={36} stroke="#464555" />
+            <CartesianGrid stroke="rgb(var(--c-outline-variant))" strokeOpacity={0.3} vertical={false} />
+            <XAxis dataKey="date" tick={AXIS_TICK} tickFormatter={formatShortDate} minTickGap={28} stroke="rgb(var(--c-outline-variant))" />
+            <YAxis domain={["auto", "auto"]} tick={AXIS_TICK} width={36} stroke="rgb(var(--c-outline-variant))" />
             <Tooltip
-              contentStyle={{ background: "#1e1f25", border: "1px solid #464555", borderRadius: 8, fontFamily: "IBM Plex Mono", fontSize: 11 }}
-              labelStyle={{ color: "#c7c4d8" }}
-              itemStyle={{ color: "#6bd8cb" }}
+              contentStyle={{ background: "rgb(var(--c-surface-container))", border: "1px solid rgb(var(--c-outline-variant))", borderRadius: 8, fontFamily: "IBM Plex Mono", fontSize: 11 }}
+              labelStyle={{ color: "rgb(var(--c-on-surface-variant))" }}
+              itemStyle={{ color: "rgb(var(--c-tertiary))" }}
               labelFormatter={(v) => formatDate(String(v))}
             />
             {visibleMarkers.map((m) => (
               <ReferenceLine
                 key={m.date}
                 x={m.date}
-                stroke="#7bd0ff"
+                stroke="rgb(var(--c-secondary))"
                 strokeDasharray="4 4"
-                label={{ value: m.label, fill: "#7bd0ff", fontSize: 10, position: "insideTopLeft" }}
+                label={{ value: m.label, fill: "rgb(var(--c-secondary))", fontSize: 10, position: "insideTopLeft" }}
               />
             ))}
             <Line
               type="monotone"
               dataKey="close"
               name="Close"
-              stroke="#6bd8cb"
+              stroke="rgb(var(--c-tertiary))"
               strokeWidth={2}
               dot={false}
               isAnimationActive={!prefersReducedMotion()}

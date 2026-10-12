@@ -4,12 +4,14 @@ import { Brain, ArrowRight, Paperclip, ChevronDown, ShieldCheck, ExternalLink } 
 
 import AppShell from "@/components/layout/AppShell";
 import DemoScenarios from "@/components/dashboard/DemoScenarios";
+import ModeBadge from "@/components/common/ModeBadge";
 import { useNow } from "@/hooks/useRun";
 import { listHistory, type HistoryEntry } from "@/lib/api";
 import { formatAgo } from "@/lib/format";
 import { domainChip } from "@/lib/labels";
 import { SAMPLE_RUNS, domainsForMode, type ResearchDepth, type ResearchMode, type RunConfig } from "@/lib/runConfig";
 import { useRunStore, type RunRecord } from "@/store/runStore";
+import { useSettings } from "@/store/settingsStore";
 
 const SCOPE_OPTIONS: { id: ResearchMode; label: string; dotClass: string }[] = [
   { id: "auto", label: "All Domains", dotClass: "bg-surface-container-lowest" },
@@ -60,6 +62,11 @@ interface RecentItem {
   sources: number | null;
 }
 
+function greeting(): string {
+  const hour = new Date().getHours();
+  return hour < 5 ? "Working late" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+}
+
 function historyItem(entry: HistoryEntry, now: number): RecentItem {
   const domains = entry.domains.length ? entry.domains : domainsForMode(entry.mode);
   const chip = domainChip(domains.length === 2 ? null : domains[0]);
@@ -93,8 +100,13 @@ function toRecentItem(id: string, config: RunConfig, run: RunRecord | undefined,
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<ResearchMode>("auto");
-  const [depth, setDepth] = useState<ResearchDepth>("standard");
+  const showSampleRuns = useSettings((s) => s.showSampleRuns);
+  // Starting values come from Settings → Research defaults (the scope chips have no "both" option).
+  const [scope, setScope] = useState<ResearchMode>(() => {
+    const mode = useSettings.getState().defaultMode;
+    return mode === "legal_finance" ? "auto" : mode;
+  });
+  const [depth, setDepth] = useState<ResearchDepth>(() => useSettings.getState().defaultDepth);
   const startRun = useRunStore((s) => s.startRun);
   const runs = useRunStore((s) => s.runs);
   const now = useNow(true, 30_000);
@@ -125,7 +137,9 @@ export default function DashboardPage() {
           .map((r) =>
             toRecentItem(r.id, r.config, r, `${r.engine.kind === "backend" ? "Backend run" : "Sample replay"} · ${formatAgo(r.startedAt, now)}`, false),
           )),
-    ...Object.entries(SAMPLE_RUNS).map(([sid, def]) => toRecentItem(sid, def.config, runs[sid], "Fictional sample", def.completed)),
+    ...(showSampleRuns
+      ? Object.entries(SAMPLE_RUNS).map(([sid, def]) => toRecentItem(sid, def.config, runs[sid], "Fictional sample", def.completed))
+      : []),
   ];
 
   return (
@@ -135,10 +149,7 @@ export default function DashboardPage() {
         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-outline-variant/20">
           <div className="flex flex-col gap-1.5 max-w-3xl">
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container border border-outline-variant/40 font-label-code-sm text-label-code-sm text-tertiary">
-                <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse" />
-                DEMO MODE
-              </span>
+              <ModeBadge />
               <span className="font-label-code-sm text-label-code-sm text-outline">·</span>
               <span className="font-label-code-sm text-label-code-sm text-secondary flex items-center gap-1">
                 <ShieldCheck size={14} />
@@ -146,7 +157,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <h1 className="font-headline-xl text-headline-xl text-on-surface tracking-tight">
-              Good afternoon<span className="text-primary-container">.</span>
+              {greeting()}<span className="text-primary-container">.</span>
             </h1>
             <p className="font-body-lg text-body-lg text-on-surface-variant">
               Ask a legal or financial research question, and DeepSearch will plan, delegate, verify, and report

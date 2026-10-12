@@ -136,11 +136,11 @@ export default function ReportBody({ report, chartCaption }: { report: Report; c
         return (
           <div
             className={`flex items-start gap-3 p-4 rounded-xl bg-surface-container-low border-l-2 ${
-              block.tone === "warning" ? "border-[#f5b942]" : "border-primary-container"
+              block.tone === "warning" ? "border-warning" : "border-primary-container"
             }`}
           >
             {block.tone === "warning" ? (
-              <AlertTriangle size={18} className="text-[#f5b942] shrink-0 mt-0.5" />
+              <AlertTriangle size={18} className="text-warning shrink-0 mt-0.5" />
             ) : (
               <Info size={18} className="text-primary shrink-0 mt-0.5" />
             )}

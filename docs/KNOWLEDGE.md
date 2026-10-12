@@ -4,7 +4,7 @@ This file is the single source of truth for the DeepSearch project: what is bein
 
 This file lives in the repository at `docs/KNOWLEDGE.md` and is kept in step with the code; copies elsewhere (claude.ai project knowledge, Downloads) may lag. The older status page "DeepSearch — Full Project Plan & Status.html" is superseded. The companion files `DEEPSEARCH_PLAN.md` and `DEEPSEARCH_PHASES.md` were not carried over; section 14 holds the phase order.
 
-**Last updated:** 2026-10-13 (Phase 7). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
+**Last updated:** 2026-10-13 (Phase 8). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
 
 ---
 
@@ -247,6 +247,10 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D42 | A run's full event history and final state are saved when it finishes; reopening replays the saved events through the same WebSocket | Every screen (Execution, Workspace, Report) rebuilds exactly as it was, with no second code path |
 | D43 | A row is written when a run starts; at start-up, rows still marked running become "interrupted" and reopen with a "server stopped" error | A restart mid-run is reported, never silently lost |
 | D44 | The database file is `backend/deepsearch.db` (`DATABASE_URL`, relative paths resolve against `backend/`); tests use an in-memory database | The same file whichever folder the server is started from; it is git-ignored |
+| D45 | Light theme and accent colours, via CSS-variable tokens; dark stays the default and keeps the exact Stitch values. This replaces "dark only" | The user asked for light/dark; variables let one class list serve both themes with no per-component changes |
+| D46 | Settings hold only options that do something: appearance, research defaults, run-finished behaviour, browser data, and real diagnostics from `/api/health`. The mockup's fake registries, SOC2/HIPAA claims, build signatures, "Flush Cache" and "Export Audit Log" are gone | Content-integrity rules: no control or claim without a real feature behind it |
+| D47 | Settings are per browser (`localStorage`, `store/settingsStore.ts`); `index.html` applies the saved appearance before first paint | No accounts (D5); and no flash of the dark theme when light is saved |
+| D48 | The mode badge reads `/api/health`: "Sample mode" (backend off), "Live data · rule-based", or "Live · Gemini" | Replaces the static "DEMO MODE" chip, which was wrong whenever the backend was running |
 | D30 | The full graph shape and the deterministic verification rules were built in Phase 4 (pulled forward from Phases 5–6) | A recorded run must replay through the real pipeline, and statuses must be computed at replay time rather than copied from a file |
 | D31 | A figure computed in code from the cited price data counts as verified | It is checked against its data by construction; "corroborated" would wrongly imply two agreeing sources |
 | D32 | Recorded scenarios never fall back to the fictional sample: if the backend is down, the Dashboard says so and how to start it | A replay must never be mistaken for real recorded research |
@@ -318,9 +322,9 @@ GPT Researcher (`assafelovic/gpt-researcher`, version 0.14.7 audited, a general-
 ## 12. Frontend knowledge
 
 ### Design system
-Premium, dark-mode-only "AI research command center". It must not look like a chatbot or a generic ChatGPT clone. Avoid neon glassmorphism, cartoon AI graphics, giant gradients, stock photos, playful colours. Animations communicate state, they do not decorate.
+Premium "AI research command center", dark by default, with a light theme and accent colours since Phase 8 (D45). It must not look like a chatbot or a generic ChatGPT clone. Avoid neon glassmorphism, cartoon AI graphics, giant gradients, stock photos, playful colours. Animations communicate state, they do not decorate.
 
-Tokens come from the approved Stitch export and live in `frontend/tailwind.config.ts` (that file is authoritative). Key values:
+Tokens come from the approved Stitch export. Since Phase 8 the colour values live in `frontend/src/styles/theme.css` as CSS variables (`--c-<role>: R G B`), with a dark block (the Stitch values below, unchanged), a light block (Material 3 light counterparts) and four accent families (indigo default, rose, amber, orchid) that recolour only the primary roles. `tailwind.config.ts` maps every role to `rgb(var(--c-role) / <alpha-value>)`, so `bg-primary/10` still works; SVG and Recharts colours use `rgb(var(--c-role))`. `warning` is now a token (dark #f5b942, light #8f5b00). Dark values:
 
 | Token | Value | Use |
 |---|---|---|
@@ -359,7 +363,7 @@ The Stitch project export (zip) contains one folder per screen with `code.html` 
 `deepsearch_terminal_authentication_1` is an unused draft and is ignored. Several `screen.png` files in the first export were broken placeholders; the user re-supplied screenshots. Stitch used Tailwind via CDN with an inline Material Design 3 config and Google Material Symbols icons; both were replaced by a real Tailwind build and lucide-react. Stitch's inline `navigateToScreen(...)` handlers are replaced by React Router.
 
 ### Routes
-`/` Landing, `/login`, `/signup`, `/dashboard`, `/research/new`, `/history` (Research History; `?view=saved` is Saved Reports, Phase 7), `/research/:id` (Execution), `/research/:id/workspace`, `/research/:id/report`, `/settings`, anything else redirects to `/`. Until the Landing page exists, `/` redirects to `/login`. Intended navigation: Landing to Sign Up or Login; Login, Sign Up and "Continue as guest (Demo Mode)" to Dashboard; Dashboard input or suggestion to Execution; completed recent research to Workspace (to Report once it exists); New Research "Start Research" to Execution; Execution to Workspace and (when complete) Final Report; Workspace to Final Report. Auth is UI-only: forms just navigate to the Dashboard.
+`/` Landing, `/login`, `/signup`, `/dashboard`, `/research/new`, `/history` (Research History; `?view=saved` is Saved Reports, Phase 7), `/research/:id` (Execution), `/research/:id/workspace`, `/research/:id/report`, `/settings`, anything else redirects to `/`. `/` is the Landing page (Phase 8). Intended navigation: Landing to Sign Up or Login; Login, Sign Up and "Continue as guest (Demo Mode)" to Dashboard; Dashboard input or suggestion to Execution; completed recent research to Workspace (to Report once it exists); New Research "Start Research" to Execution; Execution to Workspace and (when complete) Final Report; Workspace to Final Report. Auth is UI-only: forms just navigate to the Dashboard.
 
 ### Architecture and conventions
 - `@/` alias maps to `src/`; it must be configured in both `tsconfig.json` (paths) and `vite.config.ts` (`resolve.alias`), and `@types/node` is needed for `vite.config.ts`.
@@ -387,6 +391,11 @@ Ported from the Stitch `deepsearch_final_research_dossier_intelligence_report` s
 - States: "still being written" while the run is going; an error banner if it stopped before a report existed.
 - Lazy-loaded with the Workspace so Recharts stays out of the main bundle.
 - Verified in the browser on 2026-10-12: combined, legal-only (finance section dropped and shown in the audit) and in-progress sample reports; a backend NVDA report with real data; citation cards; Markdown export checked in Node.
+
+### Landing and Settings (done, Phase 8)
+- **Landing** (`pages/LandingPage.tsx`, built from the earlier draft in `C:\Major project 4-1\LandingPage.tsx`): nav with theme toggle; hero with the real `AgentTopology` replaying the fictional sample on a loop (`hooks/useLoopingSample.ts`, nothing is stored) and labelled as such; a proof strip of true statements (every claim cited, code-filled figures, at most 8 LLM calls, 7 claim labels) instead of the mockup's counters; How it works; Domains with the claim-type chips; the three recorded scenarios as examples; Limits; CTA; footer. The Stitch landing `screen.png` in the export is broken (an HTML error page), so the layout follows the draft and the Stitch `code.html` text.
+- **Settings** (`pages/SettingsPage.tsx`, Stitch layout): default research depth (with what each depth really changes: sources per search 5/8/12, price period 3/6/12 months), default domains, when a run finishes (auto-open report on the Execution screen, Web Audio chime with a Test button, show the fictional samples on the Dashboard), data in this browser (clear the local run list), appearance (theme cards with mini previews for Dark/Light/System, accent swatches, interface size Compact/Default/Large via the root font size, motion Follow system/Reduce/Full), and About & diagnostics from `/api/health` (connection and round trip with Test connection, mode, web search back end, LLM budget, scenario and history counts, versions, which free services are configured). A footer bar says changes save automatically and offers Reset to defaults.
+- **Wired in:** New Research and the Dashboard start from the saved depth and domains; `components/common/RunFinishedEffects.tsx` plays the chime and opens the report only for runs that finish while you watch (not for runs reopened from history); `ThemeToggle` in the top bar and on Landing; `ModeBadge` in the top bar and the Dashboard (D48); the Dashboard greets by time of day; the sidebar shows the version from `lib/version.ts`. New Research's advanced source toggles now say plainly that they are a preview and not sent to the backend.
 
 ### Run store (done, Phase 1)
 - `store/runStore.ts` (Zustand) holds every run keyed by research id: config, start time, and the state folded from its events by the pure `lib/streamReducer.ts`. Execution, Workspace and (later) Report read the same record, so a run keeps going when you change pages.
@@ -450,7 +459,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Run store (shared by all research screens) | Done (Phase 1) |
 | Research Workspace | Done (Phase 1) |
 | Report contract and Final Report screen | Done (Phase 3) |
-| Settings, Landing | Not built (stubs) |
+| Landing, Settings | Done (Phase 8): light/dark/system theme, accents, size, motion, research defaults, run-finished chime and auto-open, real diagnostics |
 | Backend | Full graph; finance and legal paths live (Phase 5); claim extraction and verification live and recorded (Phase 6); live check script; SQLite history and saved reports (Phase 7); 114 tests |
 | Research History, Saved Reports | Done (Phase 7) |
 | Demo scenarios | Three recorded runs with checked sources and real price snapshots, data as of 12 Oct 2026; Dashboard "Demo scenarios" section (Phase 4) |
@@ -463,7 +472,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 5. ~~Live Legal Manager and workers: Legal Records (CourtListener), Web Research, EDGAR.~~ Done 2026-10-13.
 6. ~~Live claim extraction for Verification, Gemini end-to-end, and the live smoke script.~~ Done 2026-10-13. Gemini is tested offline with a stubbed client; the first real-key run is the open item in section 19.
 7. ~~Persistence (history, saved reports) and full integration.~~ Done 2026-10-13: runs saved in SQLite and reopenable after a restart or from another browser; Research History and Saved Reports pages; Dashboard and sidebar wired to them.
-8. Landing and Settings.
+8. ~~Landing and Settings.~~ Done 2026-10-13, with a light theme, accent colours and an honest mode badge (D45–D48).
 9. Frontend hardening.
 10. Hardening, docs and viva pack.
 

@@ -1,0 +1,166 @@
+/*
+ * Colour tokens as CSS variables (generated from the Stitch dark palette).
+ * Tailwind reads them as rgb(var(--c-name) / <alpha-value>), so classes like
+ * bg-primary/10 keep working. <html data-theme="dark|light" data-accent="...">
+ * is set by store/settingsStore.ts (and before first paint by index.html).
+ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-background: 18 19 24;
+  --c-error: 255 180 171;
+  --c-error-container: 147 0 10;
+  --c-inverse-on-surface: 47 48 54;
+  --c-inverse-primary: 79 68 226;
+  --c-inverse-surface: 227 225 233;
+  --c-on-background: 227 225 233;
+  --c-on-error: 105 0 5;
+  --c-on-error-container: 255 218 214;
+  --c-on-primary: 32 0 164;
+  --c-on-primary-container: 27 0 145;
+  --c-on-primary-fixed: 16 0 105;
+  --c-on-primary-fixed-variant: 54 34 202;
+  --c-on-secondary: 0 53 74;
+  --c-on-secondary-container: 0 55 77;
+  --c-on-secondary-fixed: 0 30 44;
+  --c-on-secondary-fixed-variant: 0 76 105;
+  --c-on-surface: 227 225 233;
+  --c-on-surface-variant: 199 196 216;
+  --c-on-tertiary: 0 55 50;
+  --c-on-tertiary-container: 0 48 43;
+  --c-on-tertiary-fixed: 0 32 29;
+  --c-on-tertiary-fixed-variant: 0 80 73;
+  --c-on-warning: 42 24 0;
+  --c-outline: 145 143 161;
+  --c-outline-variant: 70 69 85;
+  --c-primary: 196 192 255;
+  --c-primary-container: 135 129 255;
+  --c-primary-fixed: 227 223 255;
+  --c-primary-fixed-dim: 196 192 255;
+  --c-secondary: 123 208 255;
+  --c-secondary-container: 0 166 224;
+  --c-secondary-fixed: 196 231 255;
+  --c-secondary-fixed-dim: 123 208 255;
+  --c-surface: 18 19 24;
+  --c-surface-bright: 56 57 63;
+  --c-surface-container: 30 31 37;
+  --c-surface-container-high: 41 42 47;
+  --c-surface-container-highest: 52 52 58;
+  --c-surface-container-low: 26 27 33;
+  --c-surface-container-lowest: 13 14 19;
+  --c-surface-dim: 18 19 24;
+  --c-surface-tint: 196 192 255;
+  --c-surface-variant: 52 52 58;
+  --c-tertiary: 107 216 203;
+  --c-tertiary-container: 41 161 149;
+  --c-tertiary-fixed: 137 245 231;
+  --c-tertiary-fixed-dim: 107 216 203;
+  --c-warning: 245 185 66;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --c-background: 251 248 255;
+  --c-error: 186 26 26;
+  --c-error-container: 255 218 214;
+  --c-inverse-on-surface: 242 239 247;
+  --c-inverse-primary: 196 192 255;
+  --c-inverse-surface: 48 48 54;
+  --c-on-background: 27 27 33;
+  --c-on-error: 255 255 255;
+  --c-on-error-container: 65 0 2;
+  --c-on-primary: 255 255 255;
+  --c-on-primary-container: 255 255 255;
+  --c-on-primary-fixed: 16 0 105;
+  --c-on-primary-fixed-variant: 54 34 202;
+  --c-on-secondary: 255 255 255;
+  --c-on-secondary-container: 255 255 255;
+  --c-on-secondary-fixed: 0 30 44;
+  --c-on-secondary-fixed-variant: 0 76 105;
+  --c-on-surface: 27 27 33;
+  --c-on-surface-variant: 70 69 85;
+  --c-on-tertiary: 255 255 255;
+  --c-on-tertiary-container: 255 255 255;
+  --c-on-tertiary-fixed: 0 32 29;
+  --c-on-tertiary-fixed-variant: 0 80 73;
+  --c-on-warning: 255 255 255;
+  --c-outline: 111 109 128;
+  --c-outline-variant: 201 198 214;
+  --c-primary: 79 68 226;
+  --c-primary-container: 107 99 242;
+  --c-primary-fixed: 227 223 255;
+  --c-primary-fixed-dim: 196 192 255;
+  --c-secondary: 0 101 143;
+  --c-secondary-container: 0 137 191;
+  --c-secondary-fixed: 196 231 255;
+  --c-secondary-fixed-dim: 123 208 255;
+  --c-surface: 251 248 255;
+  --c-surface-bright: 251 248 255;
+  --c-surface-container: 239 237 246;
+  --c-surface-container-high: 233 231 240;
+  --c-surface-container-highest: 227 225 234;
+  --c-surface-container-low: 245 242 251;
+  --c-surface-container-lowest: 255 255 255;
+  --c-surface-dim: 219 217 225;
+  --c-surface-tint: 79 68 226;
+  --c-surface-variant: 228 225 236;
+  --c-tertiary: 0 106 98;
+  --c-tertiary-container: 30 138 127;
+  --c-tertiary-fixed: 137 245 231;
+  --c-tertiary-fixed-dim: 107 216 203;
+  --c-warning: 143 91 0;
+}
+
+:root[data-accent="rose"] {
+  --c-primary: 255 177 200;
+  --c-on-primary: 94 17 51;
+  --c-primary-container: 232 100 142;
+  --c-on-primary-container: 43 0 15;
+  --c-surface-tint: 255 177 200;
+  --c-primary-fixed-dim: 255 177 200;
+}
+
+:root[data-theme="light"][data-accent="rose"] {
+  --c-primary: 163 48 90;
+  --c-on-primary: 255 255 255;
+  --c-primary-container: 194 74 117;
+  --c-on-primary-container: 255 255 255;
+  --c-surface-tint: 163 48 90;
+  --c-primary-fixed-dim: 255 177 200;
+}
+
+:root[data-accent="amber"] {
+  --c-primary: 255 207 138;
+  --c-on-primary: 69 43 0;
+  --c-primary-container: 224 160 48;
+  --c-on-primary-container: 42 24 0;
+  --c-surface-tint: 255 207 138;
+  --c-primary-fixed-dim: 255 207 138;
+}
+
+:root[data-theme="light"][data-accent="amber"] {
+  --c-primary: 133 80 0;
+  --c-on-primary: 255 255 255;
+  --c-primary-container: 173 106 0;
+  --c-on-primary-container: 255 255 255;
+  --c-surface-tint: 133 80 0;
+  --c-primary-fixed-dim: 255 207 138;
+}
+
+:root[data-accent="orchid"] {
+  --c-primary: 240 178 255;
+  --c-on-primary: 82 0 113;
+  --c-primary-container: 194 111 226;
+  --c-on-primary-container: 44 0 61;
+  --c-surface-tint: 240 178 255;
+  --c-primary-fixed-dim: 240 178 255;
+}
+
+:root[data-theme="light"][data-accent="orchid"] {
+  --c-primary: 138 61 171;
+  --c-on-primary: 255 255 255;
+  --c-primary-container: 164 84 198;
+  --c-on-primary-container: 255 255 255;
+  --c-surface-tint: 138 61 171;
+  --c-primary-fixed-dim: 240 178 255;
+}

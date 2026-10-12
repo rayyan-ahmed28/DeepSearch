@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Search, History, FolderOpen, Gavel, LineChart, SlidersHorizontal } from "lucide-react";
 import BrandMark from "@/components/common/BrandMark";
+import { APP_VERSION } from "@/lib/version";
 
 const navLinkClasses = (isActive: boolean) =>
   `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors font-body-md text-body-md ${
@@ -25,7 +26,7 @@ export default function Sidebar() {
             <span className="font-headline-sm text-headline-sm text-on-surface tracking-tight">DeepSearch</span>
           </NavLink>
           <span className="font-label-code-sm text-label-code-sm text-outline border border-outline-variant/40 rounded px-1.5 py-0.5 bg-surface-container-low">
-            v0.1
+            v{APP_VERSION.split(".").slice(0, 2).join(".")}
           </span>
         </div>
 

@@ -1,3 +1,5 @@
+@import "./theme.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,12 +10,36 @@
     margin: 0;
     padding: 0;
   }
+  /* Interface scale (Settings): every size is in rem, so this scales the whole UI. */
+  html[data-scale="small"] {
+    font-size: 93.75%;
+  }
+  html[data-scale="large"] {
+    font-size: 106.25%;
+  }
   body {
     overscroll-behavior: none;
+    background: rgb(var(--c-surface));
+    color: rgb(var(--c-on-surface));
   }
 }
 
-/* Print / Save as PDF: drop the dark theme for ink-friendly black on white. */
+/* Reduced motion, chosen in Settings (the system setting is honoured too). */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* Theme changes cross-fade instead of flashing. */
+html.theme-switching,
+html.theme-switching * {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, fill 0.25s ease !important;
+}
+
+/* Print / Save as PDF: ink-friendly black on white, whatever the theme. */
 @media print {
   @page {
     margin: 16mm;

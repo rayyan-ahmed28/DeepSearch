@@ -1,11 +1,25 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DeepSearch</title>
+    <script>
+      // Apply the saved appearance before the first paint (see src/store/settingsStore.ts).
+      (function () {
+        try {
+          var s = JSON.parse(localStorage.getItem("deepsearch.settings.v1") || "{}");
+          var root = document.documentElement;
+          var theme = s.theme || "dark";
+          if (theme === "system") theme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          root.dataset.theme = theme;
+          root.dataset.accent = s.accent || "indigo";
+          root.dataset.scale = s.scale || "default";
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body class="bg-surface text-on-surface font-body-md text-body-md">
+  <body class="font-body-md text-body-md">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

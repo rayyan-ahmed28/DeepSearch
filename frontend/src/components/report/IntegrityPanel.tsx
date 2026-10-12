@@ -29,7 +29,7 @@ export default function IntegrityPanel({ audit }: { audit: ReportAudit }) {
             <CheckCircle2 size={12} /> All checks passed
           </span>
         ) : (
-          <span className="flex items-center gap-1 font-label-code-sm text-[11px] text-[#f5b942]">
+          <span className="flex items-center gap-1 font-label-code-sm text-[11px] text-warning">
             <AlertTriangle size={12} /> Needs review
           </span>
         )}
@@ -38,7 +38,7 @@ export default function IntegrityPanel({ audit }: { audit: ReportAudit }) {
         {rows.map((r) => (
           <div key={r.label} className="flex items-start justify-between gap-3 font-body-sm text-body-sm">
             <dt className="text-on-surface-variant">{r.label}</dt>
-            <dd className={`font-label-code-sm text-label-code-sm tabular-nums ${r.bad && r.value > 0 ? "text-[#f5b942]" : "text-on-surface"}`}>
+            <dd className={`font-label-code-sm text-label-code-sm tabular-nums ${r.bad && r.value > 0 ? "text-warning" : "text-on-surface"}`}>
               {r.value}
             </dd>
           </div>

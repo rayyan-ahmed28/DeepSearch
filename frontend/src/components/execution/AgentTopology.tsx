@@ -6,11 +6,11 @@ interface AgentTopologyProps {
 }
 
 const COLOR: Record<AgentStatus, string> = {
-  idle: "#464555",
-  running: "#8781ff",
-  done: "#6bd8cb",
-  skipped: "#34343a",
-  error: "#ffb4ab",
+  idle: "rgb(var(--c-outline-variant))",
+  running: "rgb(var(--c-primary-container))",
+  done: "rgb(var(--c-tertiary))",
+  skipped: "rgb(var(--c-surface-container-highest))",
+  error: "rgb(var(--c-error))",
 };
 
 const byId = Object.fromEntries(AGENTS.map((a) => [a.id, a])) as Record<AgentId, (typeof AGENTS)[number]>;
@@ -21,7 +21,7 @@ export default function AgentTopology({ agents }: AgentTopologyProps) {
       {/* grid */}
       <path
         d="M0 110 H800 M0 220 H800 M0 330 H800 M160 0 V440 M330 0 V440 M505 0 V440 M660 0 V440"
-        stroke="#464555"
+        stroke="rgb(var(--c-outline-variant))"
         strokeDasharray="4 6"
         strokeOpacity="0.12"
       />
@@ -73,7 +73,7 @@ export default function AgentTopology({ agents }: AgentTopologyProps) {
                 transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
               />
             )}
-            <circle cx={a.x} cy={a.y} r={a.r + 6} fill="#1e1f25" />
+            <circle cx={a.x} cy={a.y} r={a.r + 6} fill="rgb(var(--c-surface-container))" />
             <circle cx={a.x} cy={a.y} r={a.r} fill={color} fillOpacity={status === "idle" ? 0.35 : 0.9} />
             <circle cx={a.x} cy={a.y} r={status === "done" ? 4 : 3} fill="#ffffff" fillOpacity={status === "idle" ? 0.4 : 1} />
 
@@ -81,7 +81,7 @@ export default function AgentTopology({ agents }: AgentTopologyProps) {
               x={a.x}
               y={a.y + a.r + 24}
               textAnchor="middle"
-              fill={status === "idle" || dim ? "#918fa1" : "#e3e1e9"}
+              fill={status === "idle" || dim ? "rgb(var(--c-outline))" : "rgb(var(--c-on-surface))"}
               className="font-label-code-sm"
               fontSize="11"
             >
@@ -91,7 +91,7 @@ export default function AgentTopology({ agents }: AgentTopologyProps) {
               x={a.x}
               y={a.y + a.r + 38}
               textAnchor="middle"
-              fill={a.kind === "tool" ? "#89f5e7" : "#c4c0ff"}
+              fill={a.kind === "tool" ? "rgb(var(--c-tertiary))" : "rgb(var(--c-primary))"}
               fillOpacity="0.7"
               className="font-label-code-sm"
               fontSize="9"

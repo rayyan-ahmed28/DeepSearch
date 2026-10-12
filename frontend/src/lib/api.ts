@@ -145,3 +145,31 @@ export async function deleteRun(researchId: string): Promise<boolean> {
     return false;
   }
 }
+
+// ── Backend health (top-bar mode badge, Settings diagnostics) ──────
+/** What GET /api/health reports: configuration booleans only, never key values. */
+export interface Health {
+  status: "ok";
+  version: string;
+  demo_mode: boolean;
+  llm_provider: "gemini" | "fake";
+  llm_model: string | null;
+  llm_call_budget: number;
+  web_search: string | null;
+  providers: { gemini: boolean; tavily: boolean; courtlistener: boolean; sec_edgar: boolean };
+  scenarios: number;
+  history_runs: number;
+}
+
+/** Health plus the measured round trip, or null when the backend is not running. */
+export async function fetchHealth(): Promise<{ health: Health; latencyMs: number } | null> {
+  const started = performance.now();
+  try {
+    const res = await fetchWithTimeout("/api/health", {}, 2000);
+    if (!res.ok) return null;
+    const health = (await res.json()) as Health;
+    return { health, latencyMs: Math.round(performance.now() - started) };
+  } catch {
+    return null;
+  }
+}

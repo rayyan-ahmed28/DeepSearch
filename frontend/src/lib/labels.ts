@@ -16,8 +16,8 @@ export const CLAIM_TYPE_LABEL: Record<ClaimType, string> = {
 
 export const CLAIM_TYPE_CLASS: Record<ClaimType, string> = {
   established_fact: "bg-tertiary/10 text-tertiary border-tertiary/30",
-  allegation: "bg-[#f5b942]/10 text-[#f5b942] border-[#f5b942]/30",
-  party_claim: "bg-[#f5b942]/10 text-[#f5b942] border-[#f5b942]/30",
+  allegation: "bg-warning/10 text-warning border-warning/30",
+  party_claim: "bg-warning/10 text-warning border-warning/30",
   company_statement: "bg-secondary/10 text-secondary border-secondary/30",
   regulatory_statement: "bg-secondary/10 text-secondary border-secondary/30",
   news_report: "bg-surface-container-high text-on-surface-variant border-outline-variant/40",

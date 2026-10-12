@@ -116,16 +116,16 @@ export default function SignUpPage() {
                 <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 400 80">
                   <defs>
                     <linearGradient id="areaGradientSignup" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#7bd0ff" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#7bd0ff" stopOpacity="0" />
+                      <stop offset="0%" stopColor="rgb(var(--c-secondary))" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="rgb(var(--c-secondary))" stopOpacity="0" />
                     </linearGradient>
                   </defs>
-                  <line stroke="#464555" strokeDasharray="2 3" strokeWidth="0.75" x1="0" x2="400" y1="20" y2="20" />
-                  <line stroke="#464555" strokeDasharray="2 3" strokeWidth="0.75" x1="0" x2="400" y1="50" y2="50" />
+                  <line stroke="rgb(var(--c-outline-variant))" strokeDasharray="2 3" strokeWidth="0.75" x1="0" x2="400" y1="20" y2="20" />
+                  <line stroke="rgb(var(--c-outline-variant))" strokeDasharray="2 3" strokeWidth="0.75" x1="0" x2="400" y1="50" y2="50" />
                   <polygon fill="url(#areaGradientSignup)" points="0,65 40,58 90,62 140,45 200,48 240,25 280,30 330,68 370,72 400,60 400,80 0,80" />
-                  <path d="M0,65 L40,58 L90,62 L140,45 L200,48 L240,25 L280,30 L330,68 L370,72 L400,60" fill="none" stroke="#7bd0ff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                  <line stroke="#ffb4ab" strokeDasharray="2 2" strokeWidth="1.5" x1="240" x2="240" y1="12" y2="76" />
-                  <circle cx="240" cy="25" fill="#ffb4ab" r="3.5" />
+                  <path d="M0,65 L40,58 L90,62 L140,45 L200,48 L240,25 L280,30 L330,68 L370,72 L400,60" fill="none" stroke="rgb(var(--c-secondary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                  <line stroke="rgb(var(--c-error))" strokeDasharray="2 2" strokeWidth="1.5" x1="240" x2="240" y1="12" y2="76" />
+                  <circle cx="240" cy="25" fill="rgb(var(--c-error))" r="3.5" />
                 </svg>
                 <div className="absolute left-[54%] top-0 -translate-y-1/2 flex items-center bg-surface-container-highest px-2 py-0.5 rounded shadow">
                   <span className="w-1.5 h-1.5 rounded-full bg-error mr-1.5" />
