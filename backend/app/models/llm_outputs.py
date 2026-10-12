@@ -69,6 +69,8 @@ class ExtractedClaim(BaseModel):
     # Claims about the same fact from different sources share a subject (e.g. "settlement_date"),
     # so code can spot sources that disagree on the date or figure.
     subject: Optional[str] = None
+    # A few words for the case timeline, when the claim is a dated milestone (e.g. "Complaint filed").
+    timeline_label: Optional[str] = None
 
 
 class ClaimExtraction(BaseModel):

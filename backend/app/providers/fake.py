@@ -12,8 +12,17 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from app.models.llm_outputs import DraftParagraph, DraftSection, FinancePlan, LegalPlan, ReportDraft, RouterDecision
-from app.models.schemas import Domain
+from app.models.llm_outputs import (
+    ClaimExtraction,
+    DraftParagraph,
+    DraftSection,
+    ExtractedClaim,
+    FinancePlan,
+    LegalPlan,
+    ReportDraft,
+    RouterDecision,
+)
+from app.models.schemas import ClaimType, Domain
 from app.providers.base import LLMError
 
 T = TypeVar("T", bound=BaseModel)
@@ -92,6 +101,7 @@ class FakeLLMProvider:
             "route": self._route,
             "plan_legal": self._plan_legal,
             "plan_finance": self._plan_finance,
+            "extract_claims": self._extract_claims,
             "report": self._report,
         }.get(purpose)
         if handler is None:
@@ -155,6 +165,66 @@ class FakeLLMProvider:
             rationale = "No company or ticker found; name one or add a symbol such as $TSLA."
         return FinancePlan(company=company, ticker=ticker, period=period, tasks=tasks, rationale=rationale)
 
+    def _extract_claims(self, ctx: dict[str, Any]) -> ClaimExtraction:
+        """Claims only from structured records: computed figures, SEC filings and court dockets.
+
+        The stand-in cannot read news or web pages, so it states nothing about
+        them; with a Gemini key the model reads those excerpts too.
+        """
+        name = ctx.get("company") or ctx.get("ticker") or "The company"
+        sources = ctx.get("sources", [])
+        prices = [s["id"] for s in sources if s["retrieved_by"] == "financial_data" and s["source_type"] != "company"]
+        filings = [s for s in sources if s["retrieved_by"] == "financial_data" and s["source_type"] == "company"]
+        dockets = [s for s in sources if s["retrieved_by"] == "legal_records"]
+        claims: list[ExtractedClaim] = []
+
+        def figure(calc_id: str, text: str, cited: list[str], event_date: str | None = None) -> None:
+            claims.append(ExtractedClaim(
+                id=f"claim_{calc_id}", text=text, claim_type=ClaimType.ESTABLISHED_FACT, source_ids=cited,
+                domain=Domain.FINANCE, calculation_id=calc_id, subject=calc_id, event_date=event_date,
+            ))
+
+        for calc in ctx.get("calculations", []):
+            calc_id = calc["id"]
+            if calc_id == "ret_period" and ctx.get("period_start"):
+                figure(calc_id, f"{name} shares returned {{{{calc:ret_period}}}} between {_words(ctx['period_start'])} "
+                       f"and {_words(ctx['period_end'])}.", prices)
+            elif calc_id == "vol_annual":
+                figure(calc_id, f"Annualised volatility of {name}'s daily returns over the period was {{{{calc:vol_annual}}}}.", prices)
+            elif calc_id == "dd_max":
+                figure(calc_id, f"{name}'s largest peak-to-trough fall in the period (maximum drawdown) was {{{{calc:dd_max}}}}.", prices)
+            elif calc_id.startswith("ret_results_"):
+                day = calc_id.removeprefix("ret_results_")
+                iso = f"{day[:4]}-{day[4:6]}-{day[6:8]}"
+                filing = [s["id"] for s in filings if s.get("published_date") == iso]
+                figure(calc_id, f"Across the results filing of {_words(iso)}, {name} shares returned {{{{calc:{calc_id}}}}}.",
+                       prices + filing, iso)
+            elif calc_id.startswith("ret_"):  # an event from the Finance Manager's plan
+                figure(calc_id, f"{calc['description']}: {{{{calc:{calc_id}}}}}.", prices)
+
+        for filing in filings[:4]:
+            claims.append(ExtractedClaim(
+                id=f"claim_{filing['id']}", text=f"SEC records show {filing['title']}.",
+                claim_type=ClaimType.COMPANY_STATEMENT, source_ids=[filing["id"]], domain=Domain.FINANCE,
+                event_date=filing.get("published_date"),
+            ))
+
+        for docket in dockets[:5]:
+            filed = docket.get("published_date")
+            text = f"Court records list {docket['title']}" + (f", filed {_words(filed)}." if filed else ".")
+            ended = TERMINATED.search(docket.get("snippet") or "")
+            if ended:
+                text += f" The docket was closed on {_words(ended.group(1))}."
+            case, _, court = docket["title"].partition(" (")
+            # Only the case the question names goes on its timeline; a docket search also returns other cases.
+            on_timeline = filed and same_case(ctx.get("case_name"), case)
+            claims.append(ExtractedClaim(
+                id=f"claim_{docket['id']}", text=text, claim_type=ClaimType.ESTABLISHED_FACT,
+                source_ids=[docket["id"]], domain=Domain.LEGAL, event_date=filed, subject=f"docket_{docket['id']}",
+                timeline_label=f"Case filed in {court.split(', No.')[0]}" if on_timeline else None,
+            ))
+        return ClaimExtraction(claims=claims)
+
     def _report(self, ctx: dict[str, Any]) -> ReportDraft:
         ticker = ctx.get("ticker")
         name = ctx.get("company") or ticker
@@ -198,7 +268,7 @@ class FakeLLMProvider:
                     source_ids=court_cite[:3],
                 ))
                 overview = DraftParagraph(
-                    text="These dockets come from CourtListener's archive of federal court records. They show that the cases exist and when they were filed; this run has not yet read the filings themselves.",
+                    text="These dockets come from CourtListener's archive of federal court records. They show that the cases exist and when they were filed; this run did not read the filings themselves.",
                     source_ids=court_cite[:5],
                 )
             else:
@@ -207,10 +277,21 @@ class FakeLLMProvider:
             sections.append(DraftSection(kind="case_overview", heading="Case overview", paragraphs=[overview]))
             if web_cite:
                 sections.append(DraftSection(kind="legal_developments", heading="Latest developments", paragraphs=[DraftParagraph(
-                    text="Official and news sources about the matter are cited here. Their claims have not yet been extracted or verified, so this report does not state what they establish.",
+                    text="Official and news sources about the matter are cited here. Without a Gemini key the rule-based stand-in does not read them, so this report does not state what they establish.",
                     source_ids=web_cite[:6],
                 )]))
 
+        cited = {s for c in ctx.get("claims", []) for s in c["source_ids"]}
+        records = [label for label, ids in (
+            ("computed price figures", [i for i in finance_cite if not i.startswith("edgar_")]),
+            ("SEC filings", [i for i in finance_cite if i.startswith("edgar_")]),
+            ("court dockets", court_cite),
+        ) if cited & set(ids)]
+        if records:
+            listed = records[0] if len(records) == 1 else ", ".join(records[:-1]) + " and " + records[-1]
+            summary.append(DraftParagraph(
+                text=f"The key findings come from structured records ({listed}); code set each one's verification status.",
+            ))
         sections.insert(0, DraftSection(kind="executive_summary", heading="Executive summary", paragraphs=summary or [
             DraftParagraph(text="No sources were found for this question.")
         ]))
@@ -224,9 +305,17 @@ class FakeLLMProvider:
 MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 
+TERMINATED = re.compile(r"Terminated (\d{4}-\d{2}-\d{2})")
+
+
 def _iso_to_words(yyyymmdd: str) -> str:
     """'20260722' -> '22 July 2026' (a date format the number audit allows)."""
     return f"{int(yyyymmdd[6:8])} {MONTH_NAMES[int(yyyymmdd[4:6]) - 1]} {yyyymmdd[:4]}"
+
+
+def _words(iso: str) -> str:
+    """'2026-07-22' -> '22 July 2026'."""
+    return _iso_to_words(iso.replace("-", ""))
 
 
 CASE_NAME = re.compile(
@@ -244,6 +333,26 @@ def find_case_name(query: str) -> str | None:
         words.pop(0)  # "of United States" -> "United States"
     left = " ".join(words)
     return f"{left} v. {m.group(2)}" if left else None
+
+
+PARTY_ALIASES = {"united": ("usa", "u.s."), "sec": ("securities",), "securities": ("sec",)}
+PARTY_IGNORED = {"the", "in", "re", "re:", "of", "and", "llc", "inc", "inc.", "corp", "corp.", "co.", "ltd", "company", "corporation"}
+
+
+def same_case(case_name: str | None, docket_case: str) -> bool:
+    """Whether a docket's caption names both parties: 'USA v. Google LLC' ~ 'United States v. Google LLC'."""
+    if not case_name or " v. " not in case_name:
+        return False
+    caption = docket_case.lower()
+
+    def named(word: str) -> bool:
+        return re.search(rf"(?<![\w.]){re.escape(word)}(?!\w)", caption) is not None
+
+    for party in case_name.split(" v. ", 1):
+        words = [w for w in party.lower().split() if w not in PARTY_IGNORED] or party.lower().split()
+        if not any(named(w) or any(named(a) for a in PARTY_ALIASES.get(w, ())) for w in words):
+            return False
+    return True
 
 
 def legal_keywords(query: str) -> str:

@@ -4,7 +4,7 @@ This file is the single source of truth for the DeepSearch project: what is bein
 
 This file lives in the repository at `docs/KNOWLEDGE.md` and is kept in step with the code; copies elsewhere (claude.ai project knowledge, Downloads) may lag. The older status page "DeepSearch — Full Project Plan & Status.html" is superseded. The companion files `DEEPSEARCH_PLAN.md` and `DEEPSEARCH_PHASES.md` were not carried over; section 14 holds the phase order.
 
-**Last updated:** 2026-10-12. The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
+**Last updated:** 2026-10-13 (Phase 6). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
 
 ---
 
@@ -111,6 +111,8 @@ Strategic brain for financial research. Identifies the company/security, builds 
 
 ### Source Verification
 One LLM call reads the collected sources and extracts claims: the text, the claim type (allegation, company statement, ...), the ids of the sources that support it, and any date or figure (decision D19). Deterministic rules (section 7) then set every claim's verification status; the LLM never sets a status. Conflicts are summarised by a template from the rule results.
+
+Live since Phase 6. With Gemini, the model reads every retrieved source's title, date and excerpt. Without a key, the rule-based stand-in states only what structured records show (D36): each computed figure (cited to the price data), each SEC filing and each court docket. It never reads news text. Verification makes no LLM call when a run retrieved nothing (D40). Dated milestones the extractor labels go on the case timeline, but only if the rules verified or corroborated them (D37).
 
 ### Content Architect / Report Architect
 Takes verified findings and produces the structured report: sections adapted to the query, citations attached, charts and timeline included, facts clearly separated from analysis. It writes numbers as placeholders that code fills in (D20). Followed by a code-level audit of the output (every citation resolves; every number in the financial sections matches a stored calculation).
@@ -236,6 +238,11 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D33 | Court searches filter procedural dockets and use "parties + subject" queries | Live tests showed a case name alone returned only warrant and miscellaneous dockets; with the filter and subject the main case and its appeals come first |
 | D34 | Keyless web search uses `ddgs`, the maintained successor of `duckduckgo_search` | The old package was rate-limited and deprecated; `ddgs` returned results in live tests |
 | D35 | Results 8-K filings from EDGAR become event windows automatically | Gives finance questions dated drivers without spending LLM calls |
+| D36 | Without Gemini, live claims come only from structured records (computed figures, SEC filings, court dockets) | A rule cannot read news honestly; these records state facts outright, so the stand-in still produces checkable findings |
+| D37 | The live case timeline holds only dated claims that the extractor labelled as milestones and the rules verified or corroborated; the stand-in labels only dockets whose parties match the case the question names | A docket search also returns unrelated cases (e.g. Richards v. Google), which must not appear on the named case's timeline |
+| D38 | Gemini gets the Pydantic schema as a JSON schema with every `$ref` inlined (`response_json_schema`). The reply is validated by Pydantic, with one retry on HTTP 429/500/503 and a 90 s timeout. A failed step falls back to the stand-in, and the report lists it under limitations | The API accepts only a subset of JSON Schema; a quota error must not end a run, and the reader must know which steps the model did not write |
+| D39 | `GEMINI_API_KEY` alone also configures GPT Researcher (its blank `GOOGLE_API_KEY`, `FAST/SMART/STRATEGIC_LLM`, `EMBEDDING`, `RETRIEVER` are filled from our settings; values the user set are kept) | Its packaged default is an xAI model, which would fail silently |
+| D40 | Verification spends no LLM call when a run retrieved no sources and computed nothing | Nothing to extract; keeps the budget for runs that need it |
 | D30 | The full graph shape and the deterministic verification rules were built in Phase 4 (pulled forward from Phases 5–6) | A recorded run must replay through the real pipeline, and statuses must be computed at replay time rather than copied from a file |
 | D31 | A figure computed in code from the cited price data counts as verified | It is checked against its data by construction; "corroborated" would wrongly imply two agreeing sources |
 | D32 | Recorded scenarios never fall back to the fictional sample: if the backend is down, the Dashboard says so and how to start it | A replay must never be mistaken for real recorded research |
@@ -414,7 +421,9 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 
 **Phase 5 (done): live legal side, 90 passing tests.** Legal Manager plans live (Gemini or the stand-in: case name, court query, web queries); Legal Records searches CourtListener; Web Research uses GPT Researcher, Tavily or DuckDuckGo; EDGAR filings and results-filing event windows in Financial Data. Each worker gets two attempts and reports failures without crashing the run; missing services are reported, never faked. Clients take an injectable HTTP transport, and `tests/test_live_workers.py` covers parsing, errors, classification and filters with recorded-style responses; `tests/fixtures.py` has offline fakes so no test touches the network. Live smoke on 2026-10-13 (no keys): the Google search case query found 1:20-cv-03010 (D.D.C.) and the D.C. Circuit appeals 26-5023/26-5049; web research returned classified news; EDGAR listed Tesla's filings and four results reports.
 
-**Not started (live):** claim extraction from live sources (the rules already run on recorded runs), Gemini end to end, persistence, rate limiting, live smoke script.
+**Phase 6 (done): live claim extraction, Gemini hardening, live check script. 110 passing tests.** `graph/nodes/verification.py` extracts claims on live runs too. It gives the extractor the sources, calculations, company, period and the Legal Manager's case name, and builds the live timeline (D36, D37, D40). `FakeLLMProvider._extract_claims` covers figures, filings and dockets, and `same_case()` matches docket captions to the named case ("USA" and "United States", "SEC" and "Securities"). `ExtractedClaim.timeline_label` was added. The extraction prompt now includes source dates, asks for at most 12 attributed claims and allows quoting a figure a source states. The report prompt receives the findings with their statuses. `providers/gemini.py` was rewritten (D38): the client is injectable, and `inline_schema()` is tested for every LLM output model. `RunContext.fallbacks` records the steps where Gemini failed. `runs.build_live_workers` wires GPT Researcher (D39). `scripts/live_smoke.py` runs real questions through the full pipeline with the keys in `backend/.env`: three standard questions, or `--query`. It prints the setup (never key values) and each run's agents, LLM calls, sources, claims, figures, timeline, audit and warnings, and exits 0 only if every run completes with at least one source and a clean audit. Live check on 2026-10-13 with no keys: 3 of 3 passed. Nvidia (1y) had 3 verified figure claims. The Google search case had 5 verified docket claims, and 4 timeline entries that left out Richards v. Google. Tesla + SEC (legal and finance) had 8 verified claims. DuckDuckGo rate-limited on one run, which was reported and not fatal. Gemini has still not been run against the real API, because no key is set on this machine. Budget with Gemini on both domains: router 1 + managers 2 + GPT Researcher up to 3 + extraction 1 + report 1 = 8.
+
+**Not started (live):** persistence, rate limiting.
 
 **Planned structure:** `app/main.py`, `config.py`, `api/` (routes and WebSocket), `graph/` (state, build_graph, `nodes/`), `workers/`, `providers/` (base, gemini, fake, openai stub), `demo/` (scenarios and replay runner), `models/schemas.py`, `db/`, `utils/` (logger, events). Keep the folder structure simple enough for students to explain in a viva.
 
@@ -435,7 +444,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Research Workspace | Done (Phase 1) |
 | Report contract and Final Report screen | Done (Phase 3) |
 | Settings, Landing | Not built (stubs) |
-| Backend | Full graph; finance and legal paths live (Phase 5); claim extraction and verification on recorded scenarios; 90 tests |
+| Backend | Full graph; finance and legal paths live (Phase 5); claim extraction and verification live and recorded (Phase 6); live check script; 110 tests |
 | Demo scenarios | Three recorded runs with checked sources and real price snapshots, data as of 12 Oct 2026; Dashboard "Demo scenarios" section (Phase 4) |
 
 **Remaining work, in order (reordered 2026-10-12 so the riskiest integration happens early):**
@@ -444,7 +453,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 3. ~~Report contract as a Pydantic model (with D20 placeholders), then the Final Report screen and citation panel.~~ Done 2026-10-12.
 4. ~~Demo scenarios as recorded runs (D21), with real, dated data.~~ Done 2026-10-12, together with the full graph shape and the verification rules (D30).
 5. ~~Live Legal Manager and workers: Legal Records (CourtListener), Web Research, EDGAR.~~ Done 2026-10-13.
-6. Live claim extraction for Verification (the rules are done), Gemini end-to-end, and the live smoke script.
+6. ~~Live claim extraction for Verification, Gemini end-to-end, and the live smoke script.~~ Done 2026-10-13. Gemini is tested offline with a stubbed client; the first real-key run is the open item in section 19.
 7. Persistence (history, saved reports) and full integration.
 8. Landing and Settings.
 9. Frontend hardening.
@@ -526,7 +535,7 @@ Still to review when built: Landing (counters like "100% auditable"), Settings (
 - Optional, free, makes live research reliable: a Tavily API key, a CourtListener token, and `SEC_EDGAR_USER_AGENT` with your own email, all in `backend/.env`.
 - Shortly before the viva, refresh the scenarios: re-run `scripts/snapshot_prices.py` for `tesla_recent_performance`, re-check the Google docket for newer entries (an appeal argument may be scheduled), update `data_as_of`, then run the tests.
 - Check in AI Studio which Gemini models this project's free tier allows, and its daily limit.
-- Run the live smoke script with real keys once it exists (Phase 6; this machine can reach every service).
+- Run the live check with a real Gemini key: put `GEMINI_API_KEY` in `backend/.env`, then from `backend` run `& "$HOME\.venvs\deepsearch\Scripts\python.exe" scripts/live_smoke.py`. Every LLM call should be labelled Gemini, no step should fall back, and all three runs should pass. If `GEMINI_MODEL` is rejected (HTTP 404 or 400), pick a model that AI Studio lists for the free tier.
 - Optional: a real name for the Dashboard greeting.
 - Optional: re-add pause/abort and a retrying state to the Execution screen.
 - Optional: upgrade Recharts 2 to 3 (npm reports 2.x as no longer maintained).

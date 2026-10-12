@@ -1,16 +1,17 @@
 """Unit tests: event bus, calculations, placeholders, rule-based stand-in, Gemini adapter."""
 
 import asyncio
+import json
 import math
 from types import SimpleNamespace
 
 import pytest
 
-from app.models.llm_outputs import FinancePlan, RouterDecision
+from app.models.llm_outputs import ClaimExtraction, FinancePlan, LegalPlan, ReportDraft, RouterDecision
 from app.models.schemas import Calculation, Domain
 from app.providers.base import BudgetExceeded, CallCounter, LLMError
 from app.providers.fake import FakeLLMProvider, find_ticker
-from app.providers.gemini import GeminiProvider
+from app.providers.gemini import GeminiProvider, inline_schema
 from app.utils.events import EventBus
 from app.utils.placeholders import RenderAudit, render
 from app.workers.analysis import analyse_prices
@@ -167,36 +168,73 @@ def test_call_counter_enforces_budget():
 
 
 # ── Gemini adapter (no network: the SDK client is stubbed) ─────────
-def _gemini_with(response=None, error=None) -> GeminiProvider:
+class ApiError(Exception):
+    """Shaped like google.genai.errors.APIError: an HTTP status in `code`."""
+
+    def __init__(self, code: int) -> None:
+        super().__init__(f"{code} error")
+        self.code = code
+
+
+def _gemini_with(*replies) -> tuple[GeminiProvider, list[dict]]:
+    """A provider whose client answers with `replies` in turn (an exception is raised, text is returned)."""
+    calls: list[dict] = []
+    queue = list(replies)
+
     async def generate_content(**kwargs):
-        if error:
-            raise error
-        return response
+        calls.append(kwargs)
+        reply = queue.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return SimpleNamespace(text=reply)
 
-    provider = GeminiProvider(api_key="test-key", model="gemini-test")
-    provider._client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate_content)))
-    return provider
-
-
-def test_gemini_returns_parsed_model():
-    decision = RouterDecision(domains=[Domain.LEGAL], primary_domain=Domain.LEGAL, complexity="low", rationale="r")
-    provider = _gemini_with(SimpleNamespace(parsed=decision, text=None))
-    assert asyncio.run(provider.generate("route", "p", RouterDecision, {})) == decision
+    client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate_content)))
+    return GeminiProvider(api_key="test-key", model="gemini-test", client=client), calls
 
 
-def test_gemini_parses_text_when_parsed_missing():
-    text = '{"domains": ["finance"], "primary_domain": "finance", "complexity": "low", "rationale": "r"}'
-    provider = _gemini_with(SimpleNamespace(parsed=None, text=text))
+_real_sleep = asyncio.sleep
+
+
+def no_wait(seconds):
+    return _real_sleep(0)
+
+
+ROUTE_JSON = '{"domains": ["finance"], "primary_domain": "finance", "complexity": "low", "rationale": "r"}'
+
+
+def test_gemini_validates_json_against_the_schema():
+    provider, calls = _gemini_with(ROUTE_JSON)
     assert asyncio.run(provider.generate("route", "p", RouterDecision, {})).domains == [Domain.FINANCE]
+    config = calls[0]["config"]
+    assert config["response_mime_type"] == "application/json"
+    assert config["response_json_schema"]["properties"]["primary_domain"]["enum"] == ["legal", "finance"]
+    assert calls[0]["model"] == "gemini-test"
 
 
-@pytest.mark.parametrize(
-    "provider",
-    [
-        _gemini_with(error=RuntimeError("429 quota")),
-        _gemini_with(SimpleNamespace(parsed=None, text="not json")),
-    ],
-)
-def test_gemini_failures_become_llm_error(provider):
+@pytest.mark.parametrize("model", [RouterDecision, LegalPlan, FinancePlan, ClaimExtraction, ReportDraft])
+def test_every_llm_schema_is_sent_without_refs(model):
+    schema = inline_schema(model)
+    assert "$ref" not in json.dumps(schema) and "$defs" not in schema
+
+
+def test_gemini_retries_once_on_rate_limit(monkeypatch):
+    monkeypatch.setattr("app.providers.gemini.asyncio.sleep", no_wait)
+    provider, calls = _gemini_with(ApiError(429), ROUTE_JSON)
+    assert asyncio.run(provider.generate("route", "p", RouterDecision, {})).primary_domain == Domain.FINANCE
+    assert len(calls) == 2
+
+
+def test_gemini_rejected_key_is_not_retried_and_never_echoed():
+    provider, calls = _gemini_with(ApiError(403))
+    with pytest.raises(LLMError) as err:
+        asyncio.run(provider.generate("route", "p", RouterDecision, {}))
+    assert len(calls) == 1
+    assert "HTTP 403" in str(err.value) and "test-key" not in str(err.value)
+
+
+@pytest.mark.parametrize("reply", [RuntimeError("connection reset"), "not json", None])
+def test_gemini_failures_become_llm_error(reply, monkeypatch):
+    monkeypatch.setattr("app.providers.gemini.asyncio.sleep", no_wait)
+    provider, _ = _gemini_with(reply, reply)
     with pytest.raises(LLMError):
         asyncio.run(provider.generate("route", "p", RouterDecision, {}))

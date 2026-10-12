@@ -49,6 +49,7 @@ class RunContext:
     scenario: Scenario | None = None  # set for recorded demo runs (D21)
     pace: float = 0.0  # seconds per step when replaying a recording, so the run is watchable
     running: set[str] = field(default_factory=set)
+    fallbacks: list[str] = field(default_factory=list)  # LLM purposes the stand-in answered because Gemini failed
 
     # ── events ─────────────────────────────────────────────────────
     def publish(self, type_: str, payload: dict[str, Any]) -> None:
@@ -83,6 +84,7 @@ class RunContext:
             if self.llm.name != "gemini":
                 raise  # the stand-in and recordings have nothing to fall back to
             self.log(agent, f"{exc}; used the rule-based fallback instead", level="warn")
+            self.fallbacks.append(purpose)
             return await self.fallback_llm.generate(purpose, prompt, schema, context)
 
 

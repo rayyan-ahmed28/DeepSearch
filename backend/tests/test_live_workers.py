@@ -178,3 +178,33 @@ def test_courtlistener_drops_procedural_and_duplicate_dockets():
     client = CourtListenerRecords("", transport(lambda r: httpx.Response(200, json={"results": [warrant, CL_RESULT, misc, duplicate]})))
     sources = asyncio.run(client.search_dockets("x", 5))
     assert [s.id for s in sources] == ["cl_18552824"]
+
+
+# ── wiring ─────────────────────────────────────────────────────────
+GPT_RESEARCHER_VARS = ("RETRIEVER", "GOOGLE_API_KEY", "FAST_LLM", "SMART_LLM", "STRATEGIC_LLM", "EMBEDDING", "TAVILY_API_KEY")
+
+
+def test_one_gemini_key_configures_gpt_researcher(monkeypatch):
+    from app.config import Settings
+    from app.runs import build_live_workers
+
+    for name in GPT_RESEARCHER_VARS:
+        monkeypatch.setenv(name, "")  # a blank line in .env counts as unset; monkeypatch restores them afterwards
+    monkeypatch.setenv("SMART_LLM", "google_genai:my-choice")  # a value the user set is kept
+    live = build_live_workers(Settings(gemini_api_key="g-key", gemini_model="gemini-x", demo_mode_setting="false"))
+    import os
+
+    assert live.web.name == "GPT Researcher"
+    assert os.environ["GOOGLE_API_KEY"] == "g-key"
+    assert os.environ["FAST_LLM"] == "google_genai:gemini-x"
+    assert os.environ["SMART_LLM"] == "google_genai:my-choice"
+    assert os.environ["RETRIEVER"] == "duckduckgo"
+
+
+def test_without_gemini_the_keyless_search_is_used(monkeypatch):
+    from app.config import Settings
+    from app.runs import build_live_workers
+
+    live = build_live_workers(Settings())
+    assert live.web.name == "DuckDuckGo" and live.filings is None and live.courts.name == "CourtListener"
+    assert build_live_workers(Settings(tavily_api_key="t")).web.name == "Tavily"

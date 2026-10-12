@@ -46,16 +46,23 @@ def plan_legal(query: str) -> str:
 
 
 def extract_claims(query: str, sources: list, calculations: list) -> str:
-    listed = [{"id": s.id, "title": s.title, "type": s.source_type.value, "excerpt": s.snippet} for s in sources]
+    listed = [
+        {"id": s.id, "title": s.title, "type": s.source_type.value,
+         "date": s.published_date.isoformat() if s.published_date else None, "excerpt": s.snippet}
+        for s in sources
+    ]
     calcs = [{"placeholder": f"{{{{calc:{c.id}}}}}", "description": c.description} for c in calculations]
     return (
-        "You are the claim extractor in DeepSearch's Verification step. From the sources below, list the key "
-        "claims needed to answer the question. For each: the text, its claim_type (established_fact only for "
-        "what an official or court source states as fact or what a calculation shows; allegation, party_claim, "
-        "company_statement, regulatory_statement, news_report or analysis otherwise), the ids of the sources "
-        "that state it, its domain, any event date, and a shared subject key for claims about the same fact. "
-        "Write figures only as the calculation placeholders listed and set calculation_id. Do not judge "
-        "whether claims are verified: code applies the rules.\n"
+        "You are the claim extractor in DeepSearch's Verification step. From the sources below, list up to 12 key "
+        "claims needed to answer the question, using only what each title or excerpt actually says. For each: the "
+        "text (one plain, attributed sentence, e.g. 'Reuters reports that ...'), its claim_type (established_fact "
+        "only for what an official or court source states as fact or what a calculation shows; allegation, "
+        "party_claim, company_statement, regulatory_statement, news_report or analysis otherwise), the ids of every "
+        "listed source that states it, its domain, any event date, and a shared subject key for claims about the "
+        "same fact, so sources that disagree can be spotted. Give timeline_label (a few words, e.g. 'Complaint "
+        "filed') only for dated milestones in the matter. Write figures from calculations only as the placeholders "
+        "listed and set calculation_id; a figure a source itself states (e.g. a penalty) may be quoted with that "
+        "source cited. Do not judge whether claims are verified: code applies the rules.\n"
         f"{GUARDRAILS}\n\n"
         f"Question: {query}\n"
         f"Sources: {json.dumps(listed)}\n"
@@ -83,12 +90,15 @@ def report(query: str, context: dict[str, Any]) -> str:
         "describe direction correctly. Dates may be written as given.\n"
         "Citations: for each paragraph, list in source_ids the ids of the sources it relies on, chosen only from "
         "the sources listed. Never invent a source.\n"
-        "Attribute claims, label allegations as allegations, and present market impact as possibility, never "
-        "certainty.\n"
+        "Build the narrative on the findings listed: state verified ones plainly, attribute corroborated and "
+        "unverified ones to their sources, and say so where findings conflict. Label allegations as allegations, "
+        "and present market impact as possibility, never certainty. Do not repeat figures that appear in findings "
+        "unless they are placeholders.\n"
         f"{GUARDRAILS}\n\n"
         f"Question: {query}\n"
         f"Company: {context.get('company')} ({context.get('ticker')})\n"
         f"Price period: {context.get('period_start')} to {context.get('period_end')}\n"
         f"Calculations: {json.dumps(calcs)}\n"
+        f"Findings (statuses set by code): {json.dumps(context.get('claims', []))}\n"
         f"Sources: {json.dumps(context.get('sources', []))}"
     )

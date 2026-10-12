@@ -22,11 +22,19 @@ def _gaps(state: ResearchState, ctx: RunContext) -> list[str]:
         gaps.append(f"Events after {as_of} are not covered.")
         if ctx.scenario.prices is not None:
             gaps.append("Share prices are split-adjusted closes, so they will not match prices quoted in news from the time; percentage moves are unaffected.")
+    elif ctx.llm.name == "gemini" and "extract_claims" not in ctx.fallbacks:
+        gaps.append(
+            "Findings were extracted by the model from search excerpts and docket records, not from the full "
+            "documents; code set every verification status. Check important findings against the cited source."
+        )
     else:
         gaps.append(
-            "Claims are not yet extracted from the sources or verified in live runs, so the report cites what was "
-            "found without stating what it establishes."
+            "Without a Gemini key, findings come only from structured records (computed price figures, SEC filings "
+            "and court dockets). News and official web pages are cited but were not read."
         )
+    if ctx.fallbacks:
+        steps = ", ".join(dict.fromkeys(f.replace("_", " ") for f in ctx.fallbacks))
+        gaps.append(f"Gemini did not answer for: {steps}. The rule-based stand-in was used for those steps.")
     for error in state.errors:
         worker, _, detail = error.partition(": ")
         gaps.append(f"The {worker.replace('_', ' ')} step did not complete: {detail}.")
@@ -49,6 +57,10 @@ async def report_architect_node(state: ResearchState, config: RunnableConfig) ->
         "period_start": prices[0].date.isoformat() if prices else None,
         "period_end": prices[-1].date.isoformat() if prices else None,
         "calculations": [c.model_dump(mode="json") for c in state.calculations],
+        "claims": [
+            {"id": c.id, "text": c.text, "claim_type": c.claim_type.value, "verification": c.verification.value, "source_ids": c.source_ids}
+            for c in state.claims
+        ],
         "sources": [
             {"id": s.id, "title": s.title, "source_type": s.source_type.value, "retrieved_by": s.retrieved_by}
             for s in state.sources

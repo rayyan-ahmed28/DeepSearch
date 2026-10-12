@@ -44,8 +44,21 @@ def build_live_workers(settings: Settings) -> LiveWorkers:
     """Use what is configured: GPT Researcher needs Gemini; Tavily needs a key; DuckDuckGo needs nothing."""
     web: WebSearch
     if settings.effective_llm == "gemini":
-        # GPT Researcher reads its retriever from the environment; without a Tavily key use DuckDuckGo.
-        os.environ.setdefault("RETRIEVER", "tavily" if settings.tavily_api_key else "duckduckgo")
+        # GPT Researcher reads its own settings from the environment. Point any it lacks at our Gemini
+        # key and model, so GEMINI_API_KEY alone is enough (its packaged default is an xAI model).
+        gpt_researcher_env = {
+            "RETRIEVER": "tavily" if settings.tavily_api_key else "duckduckgo",
+            "GOOGLE_API_KEY": settings.gemini_api_key,
+            "FAST_LLM": f"google_genai:{settings.gemini_model}",
+            "SMART_LLM": f"google_genai:{settings.gemini_model}",
+            "STRATEGIC_LLM": f"google_genai:{settings.gemini_model}",
+            "EMBEDDING": "google_genai:models/gemini-embedding-001",
+        }
+        if settings.tavily_api_key:
+            gpt_researcher_env["TAVILY_API_KEY"] = settings.tavily_api_key
+        for name, value in gpt_researcher_env.items():
+            if not os.environ.get(name, "").strip():  # a blank line in .env counts as unset
+                os.environ[name] = value
         web = GPTResearcherSearch()
     elif settings.tavily_api_key:
         web = TavilySearch(settings.tavily_api_key)

@@ -192,7 +192,7 @@ function WorkspaceView({ id }: { id: string }) {
             <div className="p-4 rounded-xl bg-surface-container-low border border-dashed border-outline-variant/40 flex flex-col gap-3">
               <p className="font-body-md text-body-md text-on-surface-variant">
                 {finished
-                  ? "No findings yet: live runs list and cite their sources, but extracting claims from live sources comes in the next phase (recorded demo scenarios already show it). The sources are on the right; any data and calculations are below."
+                  ? "No findings: nothing this run retrieved supported a claim. Without a Gemini key, findings come only from structured records (price data, SEC filings, court dockets). Any sources found are on the right."
                   : "Findings appear once Verification has extracted the claims and checked each one against its sources."}
               </p>
               {(["legal", "finance"] as const).map((d) =>
