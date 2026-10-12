@@ -568,6 +568,7 @@ Still to review when built: Landing (counters like "100% auditable"), Settings (
 - Shortly before the viva, refresh the scenarios: re-run `scripts/snapshot_prices.py` for `tesla_recent_performance`, re-check the Google docket for newer entries (an appeal argument may be scheduled), update `data_as_of`, then run the tests.
 - Check in AI Studio which Gemini models this project's free tier allows, and its daily limit.
 - Run the live check with a real Gemini key: put `GEMINI_API_KEY` in `backend/.env`, then from `backend` run `& "$HOME\.venvs\deepsearch\Scripts\python.exe" scripts/live_smoke.py`. Every LLM call should be labelled Gemini, no step should fall back, and all three runs should pass. If `GEMINI_MODEL` is rejected (HTTP 404 or 400), pick a model that AI Studio lists for the free tier.
+- Later, after Phase 10 (user's decision, 2026-10-13): real sign-in with Firebase Authentication (free Spark plan). Work involved: Firebase SDK on Login/Sign Up and a route guard; the backend verifies the Firebase ID token on each request (`firebase-admin`); a `user_id` column on `runs` so each person sees only their own history and saved reports. Until then sign-in stays a demo screen (D5).
 - Optional: a real name for the Dashboard greeting.
 - Optional: a retrying state on the Execution screen (Stop exists since Phase 9; pause was dropped, D50).
 - Optional: upgrade Recharts 2 to 3 (npm reports 2.x as no longer maintained).
