@@ -18,15 +18,16 @@ import {
 
 import AppShell from "@/components/layout/AppShell";
 import ToggleSwitch from "@/components/common/ToggleSwitch";
+import type { ResearchDepth, ResearchMode, RunConfig } from "@/lib/runConfig";
 
-type DomainId = "auto" | "legal" | "finance" | "cross";
-type DepthId = "quick" | "standard" | "deep";
+type DomainId = ResearchMode;
+type DepthId = ResearchDepth;
 
 const DOMAINS: { id: DomainId; icon: typeof Network; iconClass: string; title: string; badge?: string; description: string }[] = [
   { id: "auto", icon: Network, iconClass: "bg-primary/10 text-primary", title: "Automatic", badge: "Active", description: "AI domain routing — auto-detects legal & financial scope" },
   { id: "legal", icon: Gavel, iconClass: "bg-secondary/10 text-secondary", title: "Legal", description: "Court records, federal dockets, state precedents, appellate records" },
   { id: "finance", icon: LineChart, iconClass: "bg-tertiary/10 text-tertiary", title: "Finance", description: "SEC filings, financial ratios, market data" },
-  { id: "cross", icon: Shuffle, iconClass: "bg-surface-container-highest text-on-surface", title: "Legal + Finance", badge: "Dual-Domain", description: "Simultaneous legal research and financial analysis" },
+  { id: "legal_finance", icon: Shuffle, iconClass: "bg-surface-container-highest text-on-surface", title: "Legal + Finance", badge: "Dual-Domain", description: "Simultaneous legal research and financial analysis" },
 ];
 
 const DEPTHS: { id: DepthId; label: string; runtime: string; runtimeClass: string; icon: typeof Gauge; description: string; level: string; agents: string }[] = [
@@ -59,9 +60,12 @@ export default function NewResearchPage() {
   }
 
   function startResearch() {
-    navigate("/research/demo-1", { state: { query, depth } });
+    const run: RunConfig = { query, mode: domain, depth };
+    navigate("/research/demo-1", { state: run });
   }
 
+  // Re-register when the form changes, so Ctrl/Cmd+Enter submits the
+  // current values instead of the ones from the first render.
   useEffect(() => {
     function handleKeydown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter") startResearch();
@@ -69,7 +73,7 @@ export default function NewResearchPage() {
     window.addEventListener("keydown", handleKeydown);
     return () => window.removeEventListener("keydown", handleKeydown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [query, domain, depth]);
 
   return (
     <AppShell breadcrumb="CORE://RESEARCH/NEW_QUERY">

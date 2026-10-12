@@ -3,84 +3,91 @@ import { useNavigate } from "react-router-dom";
 import { Brain, ArrowRight, Paperclip, ChevronDown, ShieldCheck, ExternalLink } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
+import type { ResearchDepth, ResearchMode, RunConfig } from "@/lib/runConfig";
 
-type Scope = "all" | "legal" | "finance" | "patent";
-
-const SCOPE_OPTIONS: { id: Scope; label: string; dotClass: string }[] = [
-  { id: "all", label: "All Domains", dotClass: "bg-surface-container-lowest" },
+const SCOPE_OPTIONS: { id: ResearchMode; label: string; dotClass: string }[] = [
+  { id: "auto", label: "All Domains", dotClass: "bg-surface-container-lowest" },
   { id: "legal", label: "Legal Dockets", dotClass: "bg-secondary" },
   { id: "finance", label: "SEC & Earnings", dotClass: "bg-tertiary" },
-  { id: "patent", label: "Patent IP", dotClass: "bg-primary-fixed-dim" },
 ];
 
-const SUGGESTED_QUERIES = [
+const SUGGESTED_QUERIES: { domain: string; domainClass: string; mode: ResearchMode; title: string; meta: string }[] = [
   {
     domain: "Legal + Finance",
     domainClass: "text-primary",
+    mode: "legal_finance",
     title: "Antitrust suit against a mid-cap retailer and its Q3 earnings exposure",
     meta: "Illustrative example",
   },
   {
     domain: "Finance",
     domainClass: "text-tertiary",
+    mode: "finance",
     title: "Auditor resignation timeline for a semiconductor supplier and material disclosure deltas",
     meta: "Illustrative example",
   },
   {
     domain: "Legal",
     domainClass: "text-secondary",
+    mode: "legal",
     title: "Patent infringement split ruling and its effect on licensing precedent",
     meta: "Illustrative example",
   },
   {
     domain: "Finance",
     domainClass: "text-tertiary",
+    mode: "finance",
     title: "Data-breach litigation risk exposure and cyber insurance claims for a cloud vendor",
     meta: "Illustrative example",
   },
 ];
 
+// Placeholder history until persistence lands (Phase 10). Fictional companies
+// only, no docket numbers: real cases must never carry invented details.
 const RECENT_RESEARCH = [
   {
     id: "demo-1",
-    domain: "LEGAL",
-    domainClass: "text-secondary bg-secondary/10",
-    caseRef: "Docket No. 24-CV-0410",
-    title: "Patent Import Ban Appeal: Federal Circuit Review Trace",
-    updated: "42m ago",
+    domain: "LEGAL + FINANCE",
+    domainClass: "text-primary bg-primary/10",
+    caseRef: "Fictional sample",
+    title: "Example Corp: regulatory dispute and its stock-price impact",
+    updated: "sample entry",
     status: "completed" as const,
-    sources: 114,
+    sources: 8,
   },
   {
     id: "demo-2",
     domain: "LEGAL",
     domainClass: "text-secondary bg-secondary/10",
-    caseRef: "N.D. Tex. No. 3:24-cv-00986",
-    title: "Non-Compete Rule Injunction: 5th Circuit Briefing Summary",
-    updated: "2h ago",
+    caseRef: "Fictional sample",
+    title: "Sample Retail Co.: injunction status and case timeline",
+    updated: "sample entry",
     status: "completed" as const,
-    sources: 68,
+    sources: 6,
   },
   {
     id: "demo-3",
     domain: "FINANCE",
     domainClass: "text-tertiary bg-tertiary/10",
-    caseRef: "10-Q Filing Review",
-    title: "Quarterly Earnings Drivers for a Mid-Cap Logistics Company",
-    updated: "running",
+    caseRef: "Fictional sample",
+    title: "Sample Logistics Co.: quarterly earnings drivers",
+    updated: "sample entry",
     status: "in_progress" as const,
-    sources: 18,
+    sources: 4,
   },
 ];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>("all");
-  const [depth, setDepth] = useState("standard");
+  const [scope, setScope] = useState<ResearchMode>("auto");
+  const [depth, setDepth] = useState<ResearchDepth>("standard");
 
-  function startResearch() {
-    navigate("/research/demo-1", { state: { query, depth } });
+  // Takes query and mode explicitly: a suggestion click calls this in the
+  // same tick as setQuery, before state has updated.
+  function startResearch(text: string = query, mode: ResearchMode = scope) {
+    const run: RunConfig = { query: text, mode, depth };
+    navigate("/research/demo-1", { state: run });
   }
 
   return (
@@ -152,7 +159,7 @@ export default function DashboardPage() {
                 <div className="relative inline-flex items-center bg-surface-container border border-outline-variant/40 rounded px-2.5 py-1.5 text-on-surface-variant">
                   <select
                     value={depth}
-                    onChange={(e) => setDepth(e.target.value)}
+                    onChange={(e) => setDepth(e.target.value as ResearchDepth)}
                     className="bg-transparent border-0 outline-none font-label-code-sm text-label-code-sm text-on-surface appearance-none cursor-pointer pr-5"
                   >
                     <option value="quick">Quick (~1-2m)</option>
@@ -171,7 +178,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={startResearch}
+                  onClick={() => startResearch()}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-headline-sm text-headline-sm font-medium hover:bg-primary-container hover:text-on-primary-container shadow-md transition-all group"
                 >
                   <span>Start Research</span>
@@ -194,7 +201,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => {
                   setQuery(q.title);
-                  startResearch();
+                  startResearch(q.title, q.mode);
                 }}
                 className="text-left flex flex-col gap-2 p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 hover:border-primary-container hover:bg-surface-container transition-all"
               >

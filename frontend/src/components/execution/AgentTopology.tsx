@@ -15,6 +15,12 @@ const COLOR: Record<AgentStatus, string> = {
 
 const byId = Object.fromEntries(AGENTS.map((a) => [a.id, a])) as Record<AgentId, (typeof AGENTS)[number]>;
 
+const KIND_LABEL: Record<(typeof AGENTS)[number]["kind"], string> = {
+  llm: "LLM",
+  hybrid: "RULES + LLM",
+  tool: "DETERMINISTIC",
+};
+
 export default function AgentTopology({ agents }: AgentTopologyProps) {
   return (
     <svg viewBox="0 0 800 440" className="w-full h-auto" role="img" aria-label="Agent topology">
@@ -91,13 +97,13 @@ export default function AgentTopology({ agents }: AgentTopologyProps) {
               x={a.x}
               y={a.y + a.r + 38}
               textAnchor="middle"
-              fill={a.kind === "llm" ? "#c4c0ff" : "#89f5e7"}
+              fill={a.kind === "tool" ? "#89f5e7" : "#c4c0ff"}
               fillOpacity="0.7"
               className="font-label-code-sm"
               fontSize="9"
               letterSpacing="1"
             >
-              {dim ? "SKIPPED" : status === "running" && detail ? detail.toUpperCase() : a.kind === "llm" ? "LLM" : "DETERMINISTIC"}
+              {dim ? "SKIPPED" : status === "running" && detail ? detail.toUpperCase() : KIND_LABEL[a.kind]}
             </text>
           </g>
         );

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   AGENTS,
-  MOCK_DURATION_MS,
-  MOCK_SEQUENCE,
+  EDGES,
+  buildMockSequence,
   type AgentId,
   type AgentStatus,
   type ClaimStatus,
@@ -64,18 +64,36 @@ const initialState: StreamState = {
 
 type Action = { type: "reset" } | { type: "event"; event: ExecEvent };
 
+/**
+ * Managers for unselected domains are skipped, and so is any worker whose
+ * managers were all skipped (e.g. Legal Records on a Finance-only run).
+ * AGENTS is in graph order, so parents are settled before their children.
+ */
+function applyDomainSkips(agents: StreamState["agents"], domains: DomainName[]): StreamState["agents"] {
+  const next = { ...agents };
+  if (!domains.includes("legal")) next.legal_manager = { status: "skipped" };
+  if (!domains.includes("finance")) next.finance_manager = { status: "skipped" };
+  for (const a of AGENTS) {
+    const parents = EDGES.filter(([, to]) => to === a.id).map(([from]) => from);
+    if (parents.length > 0 && parents.every((p) => next[p].status === "skipped")) {
+      next[a.id] = { status: "skipped" };
+    }
+  }
+  return next;
+}
+
 function reducer(state: StreamState, action: Action): StreamState {
   if (action.type === "reset") return { ...initialState, agents: initialAgents() };
 
   const e = action.event;
   switch (e.type) {
-    case "domain_classified": {
-      const agents = { ...state.agents };
-      // Manager for a domain that was not selected is skipped, not idle.
-      if (!e.payload.domains.includes("legal")) agents.legal_manager = { status: "skipped" };
-      if (!e.payload.domains.includes("finance")) agents.finance_manager = { status: "skipped" };
-      return { ...state, agents, domains: e.payload.domains, rationale: e.payload.rationale };
-    }
+    case "domain_classified":
+      return {
+        ...state,
+        agents: applyDomainSkips(state.agents, e.payload.domains),
+        domains: e.payload.domains,
+        rationale: e.payload.rationale,
+      };
     case "plan_created":
       return { ...state, plans: { ...state.plans, [e.payload.manager]: e.payload.tasks } };
     case "agent_status":
@@ -121,12 +139,19 @@ function reducer(state: StreamState, action: Action): StreamState {
 /**
  * Event source for the execution screen.
  *
- * Today: replays MOCK_SEQUENCE on timers.
+ * Today: replays the sample run (trimmed to `domains`) on timers.
  * Later: replace `start()` internals with a WebSocket to /ws/research/{id}
  * that calls `dispatch({ type: "event", event })` per message. Nothing else
  * in the UI changes.
  */
-export function useResearchStream() {
+export function useResearchStream(domains: DomainName[], manualOverride: boolean) {
+  const domainKey = domains.join(",");
+  const sequence = useMemo(
+    () => buildMockSequence(domainKey.split(",") as DomainName[], manualOverride),
+    [domainKey, manualOverride],
+  );
+  const durationMs = sequence[sequence.length - 1].at;
+
   const [state, dispatch] = useReducer(reducer, initialState);
   const [elapsedMs, setElapsedMs] = useState(0);
   const timers = useRef<number[]>([]);
@@ -142,17 +167,17 @@ export function useResearchStream() {
     dispatch({ type: "reset" });
     startedAt.current = Date.now();
     setElapsedMs(0);
-    MOCK_SEQUENCE.forEach((step) => {
+    sequence.forEach((step) => {
       timers.current.push(window.setTimeout(() => dispatch({ type: "event", event: step.event }), step.at));
     });
-  }, [clearTimers]);
+  }, [clearTimers, sequence]);
 
   const skipToEnd = useCallback(() => {
     clearTimers();
     dispatch({ type: "reset" });
-    MOCK_SEQUENCE.forEach((step) => dispatch({ type: "event", event: step.event }));
-    setElapsedMs(MOCK_DURATION_MS);
-  }, [clearTimers]);
+    sequence.forEach((step) => dispatch({ type: "event", event: step.event }));
+    setElapsedMs(durationMs);
+  }, [clearTimers, sequence, durationMs]);
 
   useEffect(() => {
     start();

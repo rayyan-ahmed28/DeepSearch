@@ -7,11 +7,7 @@ import AgentTopology from "@/components/execution/AgentTopology";
 import ActivityFeed from "@/components/execution/ActivityFeed";
 import { useResearchStream } from "@/hooks/useResearchStream";
 import { AGENTS, LLM_CALL_BUDGET } from "@/lib/executionEvents";
-
-interface RunConfig {
-  query?: string;
-  depth?: string;
-}
+import { domainsForMode, type RunConfig } from "@/lib/runConfig";
 
 const DEFAULT_QUERY = "Sample run: legal dispute and stock impact for a fictional company";
 
@@ -31,10 +27,11 @@ export default function ResearchExecutionPage() {
   const { id = "demo-1" } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const cfg = (location.state ?? {}) as RunConfig;
+  const cfg = (location.state ?? {}) as Partial<RunConfig>;
   const query = cfg.query?.trim() || DEFAULT_QUERY;
+  const manualOverride = cfg.mode !== undefined && cfg.mode !== "auto";
 
-  const { state, elapsedMs, restart, skipToEnd } = useResearchStream();
+  const { state, elapsedMs, restart, skipToEnd } = useResearchStream(domainsForMode(cfg.mode), manualOverride);
 
   const agentsDone = AGENTS.filter((a) => state.agents[a.id].status === "done").length;
   const agentsActive = AGENTS.filter((a) => state.agents[a.id].status !== "skipped").length;
