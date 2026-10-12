@@ -111,6 +111,7 @@ export default function DashboardPage() {
   const runs = useRunStore((s) => s.runs);
   const now = useNow(true, 30_000);
   const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
   // The backend's saved history, or null when it isn't running (then this browser's runs are shown).
   const [history, setHistory] = useState<HistoryEntry[] | null>(null);
   useEffect(() => {
@@ -122,7 +123,15 @@ export default function DashboardPage() {
   async function startResearch(text: string = query, mode: ResearchMode = scope) {
     if (starting) return;
     setStarting(true);
-    const id = await startRun({ query: text, mode, depth });
+    setStartError(null);
+    let id: string;
+    try {
+      id = await startRun({ query: text, mode, depth });
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : "Could not start the research.");
+      setStarting(false);
+      return;
+    }
     navigate(`/research/${id}`);
   }
 
@@ -237,6 +246,11 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+          {startError && (
+            <p role="alert" className="mt-3 font-body-sm text-body-sm text-error">
+              {startError}
+            </p>
+          )}
         </section>
 
         <DemoScenarios />

@@ -43,6 +43,11 @@ export function formatCalculation(result: number | Record<string, unknown>, unit
   return unit ? `${n} ${unit}` : n;
 }
 
+/** A source URL that is safe to use as a link (http or https only), else null. */
+export function safeHref(url: string | null | undefined): string | null {
+  return url && /^https?:\/\//i.test(url.trim()) ? url.trim() : null;
+}
+
 /** "5m ago" style, for run lists. */
 export function formatAgo(epochMs: number, now: number): string {
   const s = Math.max(0, Math.round((now - epochMs) / 1000));

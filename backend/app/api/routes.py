@@ -70,6 +70,20 @@ def demo_scenarios(request: Request) -> list[dict]:
 async def create_research(body: ResearchRequest, request: Request) -> dict:
     # async on purpose: the run is started as a task on the server's event loop.
     registry = _registry(request)
+    limits = registry.settings
+    if registry.active_count() >= limits.max_active_runs:
+        raise HTTPException(
+            status_code=429,
+            detail=f"{limits.max_active_runs} runs are already in progress. Wait for one to finish, or stop one.",
+            headers={"Retry-After": "10"},
+        )
+    wait = request.app.state.run_limiter.check(request.client.host if request.client else "unknown")
+    if wait:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many new runs in a minute (limit {limits.runs_per_minute}). Try again in {wait} s.",
+            headers={"Retry-After": str(wait)},
+        )
     try:
         run = registry.start(body)
     except UnknownScenario:

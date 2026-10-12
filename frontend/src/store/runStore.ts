@@ -242,6 +242,7 @@ export const useRunStore = create<RunStore>()((set, get) => ({
       connect(id);
       return id;
     }
+    if (created.busy) throw new Error(created.reason);
     if (scenarioId) throw new Error(`${created.reason}: start the backend to replay the recorded scenarios.`);
     const id = newRunId();
     const record = sampleRecord(id, clean, { sample: false, startedAt: Date.now(), skipped: false, note: created.reason });

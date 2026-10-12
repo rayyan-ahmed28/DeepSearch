@@ -11,7 +11,8 @@ export interface CreatedRun {
   scenario: { id: string; data_as_of: string } | null;
 }
 
-export type CreateResult = { ok: true; run: CreatedRun } | { ok: false; reason: string };
+/** `busy`: the backend is running but refused (rate limit); never fall back to the sample then. */
+export type CreateResult = { ok: true; run: CreatedRun } | { ok: false; reason: string; busy?: boolean };
 
 /** A recorded demo run (D21) that replays through the live pipeline. */
 export interface DemoScenario {
@@ -55,6 +56,10 @@ export async function createResearch(config: RunConfig, scenarioId?: string): Pr
       },
       5000,
     );
+    if (res.status === 429) {
+      const detail = ((await res.json().catch(() => null)) as { detail?: string } | null)?.detail;
+      return { ok: false, busy: true, reason: detail ?? "The backend is busy. Try again in a moment." };
+    }
     if (!res.ok) return { ok: false, reason: `Backend error (${res.status})` };
     return { ok: true, run: (await res.json()) as CreatedRun };
   } catch {

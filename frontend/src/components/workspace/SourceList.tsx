@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { ExternalLink, Library } from "lucide-react";
 
 import { AGENT_LABEL, type SourcePayload } from "@/lib/executionEvents";
-import { formatDate } from "@/lib/format";
+import { formatDate, safeHref } from "@/lib/format";
 import { SOURCE_FILTERS, SOURCE_TYPE_CLASS, SOURCE_TYPE_LABEL, type SourceFilter } from "@/lib/labels";
 
 interface SourceListProps {
@@ -88,16 +88,16 @@ export default function SourceList({
                 </span>
               </div>
               <span className="font-body-sm text-body-sm text-on-surface font-medium leading-snug">{s.title}</span>
-              {s.url ? (
+              {safeHref(s.url) ? (
                 <a
-                  href={s.url}
+                  href={safeHref(s.url)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
                   className="flex items-center gap-1 font-label-code-sm text-[11px] text-primary truncate hover:underline"
                 >
                   <ExternalLink size={11} className="shrink-0" />
-                  <span className="truncate">{s.url.replace(/^https?:\/\//, "")}</span>
+                  <span className="truncate">{safeHref(s.url)!.replace(/^https?:\/\//, "")}</span>
                 </a>
               ) : (
                 <span className="font-label-code-sm text-[11px] text-outline">No link (sample data)</span>

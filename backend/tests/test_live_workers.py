@@ -31,6 +31,11 @@ def transport(handler):
         ("https://x.com/elonmusk/status/1", None),
         ("https://www.reddit.com/r/stocks/x", None),
         ("ftp://sec.gov/file", None),
+        ("javascript:alert(1)//sec.gov", None),
+        ("http://localhost:8000/api/health", None),
+        ("http://127.0.0.1/x", None),
+        ("http://192.168.1.5/admin", None),
+        ("http://[::1]/x", None),
     ],
 )
 def test_classify(url, expected):

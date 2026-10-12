@@ -7,6 +7,7 @@ outright (never authoritative legal evidence); everything else is secondary.
 
 from __future__ import annotations
 
+import ipaddress
 from urllib.parse import urlparse
 
 from app.models.schemas import SourceType
@@ -32,10 +33,21 @@ def registrable_domain(url: str) -> str:
     return ".".join(parts[-2:]) if len(parts) >= 2 else host
 
 
+def _local(host: str) -> bool:
+    """localhost or a private, loopback or link-local address: never a public source."""
+    if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
+        return True
+    try:
+        ip = ipaddress.ip_address(host.strip("[]"))
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+
+
 def classify(url: str, company_domains: tuple[str, ...] = ()) -> SourceType | None:
     """The source type for a URL, or None if it must not be used as evidence."""
     host = (urlparse(url).hostname or "").lower()
-    if not host or urlparse(url).scheme not in ("http", "https"):
+    if not host or urlparse(url).scheme not in ("http", "https") or _local(host):
         return None
     domain = registrable_domain(url)
     if domain in REJECTED:

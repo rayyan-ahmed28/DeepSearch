@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { ExternalLink, FileSearch, X } from "lucide-react";
 
 import { AGENT_LABEL, type ClaimPayload, type SourcePayload } from "@/lib/executionEvents";
-import { formatDate } from "@/lib/format";
+import { formatDate, safeHref } from "@/lib/format";
 import {
   CLAIM_TYPE_LABEL,
   SOURCE_TYPE_CLASS,
@@ -89,9 +89,9 @@ export function CitationCard({
           “{source.snippet}”
         </blockquote>
       )}
-      {source.url ? (
+      {safeHref(source.url) ? (
         <a
-          href={source.url}
+          href={safeHref(source.url)!}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 font-label-code-sm text-label-code-sm text-primary hover:underline break-all"

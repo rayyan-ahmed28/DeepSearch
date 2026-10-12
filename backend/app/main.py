@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import routes, ws
+from app.api.limits import RateLimiter
 from app.config import Settings, load_settings
 from app.db.store import RunStore
 from app.providers import LLMProvider
@@ -38,6 +39,7 @@ def create_app(
         allow_headers=["Content-Type"],
     )
     app.state.registry = RunRegistry(settings, llm=llm, prices=prices, live=live, store=store)
+    app.state.run_limiter = RateLimiter(settings.runs_per_minute)
     app.include_router(routes.router)
     app.include_router(ws.router)
     logging.getLogger("deepsearch").info(

@@ -16,8 +16,10 @@ def _gaps(state: ResearchState, ctx: RunContext) -> list[str]:
     if ctx.scenario is not None:
         as_of = ctx.scenario.data_as_of.strftime("%d %B %Y").lstrip("0")
         gaps.append(
-            f"This is a recorded demo run. Its sources and model responses were captured on {as_of} and replayed "
-            "through the live pipeline; every figure and verification status was recomputed by code during this replay."
+            f"This is a recorded demo run. Its sources were gathered and checked on {as_of}. The planning, claim "
+            "extraction and report text were prepared from those sources at the same time, in the exact format the "
+            "model must return; they are replayed, not generated live. Every figure and verification status was "
+            "recomputed by code during this replay."
         )
         gaps.append(f"Events after {as_of} are not covered.")
         if ctx.scenario.prices is not None:

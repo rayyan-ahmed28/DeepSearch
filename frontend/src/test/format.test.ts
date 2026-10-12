@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCalculation, formatClaimValue, formatDate, formatElapsed } from "@/lib/format";
+import { formatCalculation, formatClaimValue, formatDate, formatElapsed, safeHref } from "@/lib/format";
 
 describe("formatting", () => {
   it("signs percentage changes but not levels such as volatility", () => {
@@ -26,5 +26,12 @@ describe("formatting", () => {
   it("shows dates the same in every time zone", () => {
     expect(formatDate("2026-10-12")).toBe("12 Oct 2026");
     expect(formatElapsed(65_000)).toBe("01:05");
+  });
+
+  it("only ever links to http and https addresses", () => {
+    expect(safeHref("https://www.sec.gov/x")).toBe("https://www.sec.gov/x");
+    expect(safeHref("javascript:alert(1)")).toBeNull();
+    expect(safeHref("data:text/html,hi")).toBeNull();
+    expect(safeHref(null)).toBeNull();
   });
 });

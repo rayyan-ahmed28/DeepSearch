@@ -130,6 +130,9 @@ class RunRegistry:
         self.store.set_saved(research_id, saved)
         return {**summary, "saved": saved}
 
+    def active_count(self) -> int:
+        return sum(1 for run in self.runs.values() if not run.bus.closed)
+
     def stop(self, research_id: str) -> bool:
         """Stop a run in progress. False if it is unknown or already finished."""
         run = self.runs.get(research_id)

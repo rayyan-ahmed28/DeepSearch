@@ -176,3 +176,34 @@ def test_stop_ends_a_run_cleanly_and_is_saved(tmp_path):
         assert client.get(f"/api/research/{research_id}").json()["status"] == "stopped"
         assert client.post(f"/api/research/{research_id}/stop").status_code == 409  # already finished
         assert client.post("/api/research/nope/stop").status_code == 404
+
+
+# ── rate limits (Phase 10) ─────────────────────────────────────────
+def test_new_runs_are_rate_limited_per_client():
+    settings = Settings(demo_pace_seconds=0, runs_per_minute=2, max_active_runs=50)
+    with TestClient(create_app(settings, llm=FakeLLMProvider(), prices=FixturePrices(), live=offline_live())) as client:
+        for _ in range(2):
+            assert client.post("/api/research", json={"query": "How has Tesla stock performed?"}).status_code == 201
+        refused = client.post("/api/research", json={"query": "How has Tesla stock performed?"})
+        assert refused.status_code == 429 and int(refused.headers["Retry-After"]) > 0
+        assert "Too many new runs" in refused.json()["detail"]
+
+
+def test_runs_in_progress_are_capped():
+    settings = Settings(demo_pace_seconds=0.5, runs_per_minute=50, max_active_runs=1)
+    with TestClient(create_app(settings, llm=FakeLLMProvider(), prices=FixturePrices(), live=offline_live())) as client:
+        first = client.post("/api/research", json={"query": "x", "scenario_id": "sec_v_musk_2018"}).json()["research_id"]
+        busy = client.post("/api/research", json={"query": "How has Tesla stock performed?"})
+        assert busy.status_code == 429 and "already in progress" in busy.json()["detail"]
+        client.post(f"/api/research/{first}/stop")
+
+
+def test_rate_limiter_window_slides():
+    from app.api.limits import RateLimiter
+
+    now = [0.0]
+    limiter = RateLimiter(2, 60, clock=lambda: now[0])
+    assert limiter.check("a") == 0 and limiter.check("a") == 0
+    assert limiter.check("a") == 60 and limiter.check("b") == 0  # per client
+    now[0] = 61
+    assert limiter.check("a") == 0

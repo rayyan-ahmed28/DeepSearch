@@ -65,6 +65,7 @@ export default function NewResearchPage() {
   const [toggles, setToggles] = useState(DEFAULT_TOGGLES);
   const startRun = useRunStore((s) => s.startRun);
   const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   function updateToggle(key: keyof typeof DEFAULT_TOGGLES, value: boolean) {
     setToggles((prev) => ({ ...prev, [key]: value }));
@@ -73,7 +74,15 @@ export default function NewResearchPage() {
   async function startResearch() {
     if (starting) return;
     setStarting(true);
-    const id = await startRun({ query, mode: domain, depth });
+    setStartError(null);
+    let id: string;
+    try {
+      id = await startRun({ query, mode: domain, depth });
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : "Could not start the research.");
+      setStarting(false);
+      return;
+    }
     navigate(`/research/${id}`);
   }
 
@@ -323,17 +332,16 @@ export default function NewResearchPage() {
 
         {/* Footer action bar */}
         <div className="flex items-center justify-between gap-4 pb-4">
-          <button
-            type="button"
-            className="font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface transition-colors"
-          >
-            Save query template
-          </button>
+          {startError && (
+            <p role="alert" className="font-body-sm text-body-sm text-error mr-auto">
+              {startError}
+            </p>
+          )}
           <button
             type="button"
             onClick={startResearch}
             disabled={starting}
-            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-on-primary font-headline-sm text-headline-sm font-medium hover:bg-primary-container hover:text-on-primary-container shadow-md transition-all disabled:opacity-60 disabled:cursor-wait"
+            className="ml-auto flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-on-primary font-headline-sm text-headline-sm font-medium hover:bg-primary-container hover:text-on-primary-container shadow-md transition-all disabled:opacity-60 disabled:cursor-wait"
           >
             <span>Start Research</span>
           </button>

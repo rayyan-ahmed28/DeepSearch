@@ -7,7 +7,8 @@
 Needs internet. Uses exactly what the server would use: Gemini if
 GEMINI_API_KEY is set (otherwise the rule-based stand-in), Tavily or
 DuckDuckGo, CourtListener, Yahoo Finance and, with SEC_EDGAR_USER_AGENT,
-SEC EDGAR. Key values are never printed.
+SEC EDGAR. Key values are never printed, and these runs are not added to
+the research history.
 
 A run passes when it completes, retrieves at least one source and its report
 passes the audit (every figure from a stored calculation, every citation
@@ -27,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import Settings, load_settings  # noqa: E402
+from app.db.store import RunStore  # noqa: E402
 from app.models.schemas import ExecutionStatus, ResearchRequest  # noqa: E402
 from app.runs import Run, RunRegistry  # noqa: E402
 
@@ -105,7 +107,7 @@ def summarise(run: Run, seconds: float) -> tuple[bool, list[str]]:
 
 async def main(questions: list[tuple[str, str]], depth: str) -> int:
     settings = load_settings()
-    registry = RunRegistry(settings)
+    registry = RunRegistry(settings, store=RunStore())  # in memory: checks never land in your research history
     print("DeepSearch live check (key values are never printed)")
     print("\n".join(describe_setup(settings, registry)))
     passed = 0

@@ -4,7 +4,7 @@ This file is the single source of truth for the DeepSearch project: what is bein
 
 This file lives in the repository at `docs/KNOWLEDGE.md` and is kept in step with the code; copies elsewhere (claude.ai project knowledge, Downloads) may lag. The older status page "DeepSearch — Full Project Plan & Status.html" is superseded. The companion files `DEEPSEARCH_PLAN.md` and `DEEPSEARCH_PHASES.md` were not carried over; section 14 holds the phase order.
 
-**Last updated:** 2026-10-13 (Phase 9). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
+**Last updated:** 2026-10-13 (Phase 10, all phases complete). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
 
 ---
 
@@ -228,7 +228,7 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D18 | Self-host fonts with `@fontsource` (Inter, Space Grotesk, IBM Plex Mono) instead of Google Fonts links | App looks identical offline; demo-day network may be unreliable (implemented 2026-10-12; it was not in wip5) |
 | D19 | Claim extraction is Verification's one LLM call; deterministic rules set every status; the conflict summary is a template | The pipeline had no step that turned sources into claims, and one extra call per manager would break the budget. Keeps the topology and the budget |
 | D20 | Report numbers are placeholders (`{{calc:<id>}}`) filled by code | The number audit holds by construction instead of regex-matching prose, which would flag every year and date |
-| D21 | Demo Mode replays a recorded live run: worker results and every LLM response, keyed by node. A non-demo query with no keys gets a clear "Live Mode needs API keys" message and the option to open the nearest demo scenario | "Same graph, blank keys" is only possible if LLM outputs are recorded too |
+| D21 | Demo Mode replays a recorded live run: worker results and every LLM response, keyed by node. (Superseded in part: since Phase 2 a query with no keys runs live with the rule-based stand-in instead of being refused. The recorded LLM responses were prepared by hand from the checked sources, in the model's output format, because no Gemini key was available; reports say so since Phase 10.) | "Same graph, blank keys" is only possible if LLM outputs are recorded too |
 | D22 | Scope is US jurisdiction | All legal and filing sources are US systems |
 | D23 | Develop natively on Windows: venv at `%USERPROFILE%\.venvs\deepsearch`, `pydantic<2.14`, exact versions in `requirements-lock.txt` | Smart App Control blocks pydantic-core 2.50; long paths break Windows' 260-character limit; WSL's Python lacks pip without sudo (section 16) |
 | D25 | The frontend uses the backend when `/api/health` answers, otherwise the sample replay; every screen says which ("Backend run · …" or "Demo replay of sample events (Backend not running)") | The app always works, and never passes a replay off as a live run |
@@ -255,6 +255,10 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D50 | A real Stop: `POST /api/research/{id}/stop` cancels the run task, running agents become "Stopped by you", the run keeps what it found and is saved with status `stopped` | The plan said pause/abort exists or is removed; a cancel is honest and cheap, a pause is not |
 | D51 | Error boundaries around every page (`AppShell` and the root) and around the agent graph, charts, timeline and report body; unknown routes get a Not Found page | One failing component must never blank the app |
 | D52 | Frontend tests use Vitest on the pure logic (stream reducer, report export and citations, formatting); no Playwright | Playwright's browser download is likely to be blocked by Smart App Control on this machine; the browser checks are done through the app's preview pane |
+| D53 | Rate limits: at most `RUNS_PER_MINUTE` (10) new runs per client address per minute and `MAX_ACTIVE_RUNS` (3) in progress, in memory (`api/limits.py`); a refusal is a 429 with Retry-After, shown to the user, never turned into a sample replay | Each run spends free-tier quota; one process needs no shared store |
+| D54 | Sources must be http(s) on public hosts: `localhost`, `.local` and private, loopback, link-local or reserved IPs are dropped by `classify()`, and the frontend links only http(s) URLs (`safeHref`) | Search results and stored data are untrusted input: no `javascript:` links, nothing pointing into the user's network |
+| D55 | One-click Windows scripts at the repo root: `setup.cmd`, `start.cmd`, `test.cmd` (batch, CRLF via `.gitattributes`) | Batch files run without PowerShell's execution policy; a stranger can set up and run with two commands |
+| D56 | Recorded demo reports state that their model outputs were prepared from the checked sources, not generated live; `live_smoke.py` uses an in-memory history | Honesty: "captured" implied Gemini produced them. Checks must not fill the user's research history |
 | D30 | The full graph shape and the deterministic verification rules were built in Phase 4 (pulled forward from Phases 5–6) | A recorded run must replay through the real pipeline, and statuses must be computed at replay time rather than copied from a file |
 | D31 | A figure computed in code from the cited price data counts as verified | It is checked against its data by construction; "corroborated" would wrongly imply two agreeing sources |
 | D32 | Recorded scenarios never fall back to the fictional sample: if the backend is down, the Dashboard says so and how to start it | A replay must never be mistaken for real recorded research |
@@ -451,6 +455,8 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 
 **Phase 7 (done): saved history and reports, 114 passing tests.** `app/db/store.py` (`RunStore`: `run_started`, `run_finished`, `mark_interrupted`, `set_saved`, `delete`, `summary`, `list`, `load`) and `EventBus.replay()`. `RunRegistry` writes a row at start and at finish, and `get()` falls back to the database (D42, D43). New endpoints are in section 6. `create_app()` and `RunRegistry` accept a `store` for tests. Tests in `test_api.py`: a finished run survives a restart and its events replay identically; save, unsave and delete; a run cut off by a restart reads as interrupted; database path resolution.
 
+**Phase 10 additions:** `api/limits.py` and the 429 path in `POST /api/research` (D53), local-host filtering in `source_types.classify` (D54), the honest recorded-demo limitation text and in-memory history for `live_smoke.py` (D56), `setup.cmd`/`start.cmd`/`test.cmd` (D55), a rewritten README and `docs/VIVA.md`; 123 backend tests. Acceptance on 2026-10-13: `test.cmd` green; `live_smoke.py` 3 of 3 PASS with no keys (DuckDuckGo rate-limited once, reported, not fatal); a recorded demo clicked through from Landing to its report with a clean audit and no console errors.
+
 **Phase 9 additions:** `POST /api/research/{id}/stop` and `ExecutionStatus.STOPPED` (D50), `Claim.calculation_id`, 115 backend tests.
 
 **Not started (live):** rate limiting.
@@ -475,6 +481,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Report contract and Final Report screen | Done (Phase 3) |
 | Landing, Settings | Done (Phase 8): light/dark/system theme, accents, size, motion, research defaults, run-finished chime and auto-open, real diagnostics |
 | Frontend hardening | Done (Phase 9): phone/tablet layout, error boundaries, Not Found, Stop button, accessibility pass, 11 Vitest tests |
+| Hardening, docs, viva pack | Done (Phase 10): rate limits, URL safety, dependency audit, setup/start/test scripts, full README, `docs/VIVA.md`; 123 backend + 12 frontend tests |
 | Backend | Full graph; finance and legal paths live (Phase 5); claim extraction and verification live and recorded (Phase 6); live check script; SQLite history and saved reports (Phase 7); 114 tests |
 | Research History, Saved Reports | Done (Phase 7) |
 | Demo scenarios | Three recorded runs with checked sources and real price snapshots, data as of 12 Oct 2026; Dashboard "Demo scenarios" section (Phase 4) |
@@ -489,7 +496,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 7. ~~Persistence (history, saved reports) and full integration.~~ Done 2026-10-13: runs saved in SQLite and reopenable after a restart or from another browser; Research History and Saved Reports pages; Dashboard and sidebar wired to them.
 8. ~~Landing and Settings.~~ Done 2026-10-13, with a light theme, accent colours and an honest mode badge (D45–D48).
 9. ~~Frontend hardening.~~ Done 2026-10-13 (D49–D52).
-10. Hardening, docs and viva pack.
+10. ~~Hardening, docs and viva pack.~~ Done 2026-10-13 (D53–D56). **All ten phases are complete.** Next, only when the user asks: Firebase sign-in (section 19).
 
 **Cut list if time runs short (drop in this order):** deployment; Settings polish; Deep depth; EDGAR filings; export; history persistence; Live Mode (last, and say so plainly if cut). Never cut: guardrails, the Router to Managers to Workers to Verification to Report structure, Demo Mode, honesty labels.
 
@@ -547,7 +554,8 @@ Still to review when built: Landing (counters like "100% auditable"), Settings (
 
 - Never commit `.env`. `.gitignore` excludes it. Keys are read only from environment variables; `/api/health` reports only whether a provider is configured, never a value.
 - The originally uploaded GPT Researcher archive contained a populated `.env` (xAI, Tavily, LangChain keys). It was verified as never committed to git history, but those keys were shared into a chat session. **Rotate them** (see open items).
-- Planned security pass: CORS locked to configured origins, input length and type limits, per-session rate limiting, SSRF care in scraping (only fetch URLs returned by search providers; block private address ranges), dependency audit.
+- Security pass (done, Phase 10): CORS limited to `CORS_ORIGINS`; request validation (question 1–2,000 characters, history limit 1–200); rate limits (D53); URL safety (D54); no secrets in git history (checked with a pattern scan of every commit); Gemini errors reduced to status codes. The backend calls only fixed public APIs; GPT Researcher (Gemini only) fetches pages the search provider returned. The WebSocket has no origin check: it only streams a run's public events.
+- Dependency audit (13 Oct 2026): `pip-audit` finds one advisory, `nltk` 3.10.3 (PYSEC-2026-3740, no fixed release), pulled in by GPT Researcher and not called by DeepSearch. `npm audit` (after the non-breaking `npm audit fix`): advisories in Vite, Tailwind, Vitest and their dependencies, which are development tools that never ship to the browser, and two in React Router 6 (an open redirect needing attacker-controlled link paths, and SSR hydration), neither used here. Fixing them needs major upgrades (Vite 8, Tailwind 4, React Router 7, Vitest 5); do that after the viva if the project continues.
 - GPT Researcher is MIT per its `pyproject.toml` (the LICENSE file text reads Apache-2.0); both permissive. Give credit in the README. Stitch output was generated by the user's own project.
 
 ---
@@ -565,7 +573,7 @@ Still to review when built: Landing (counters like "100% auditable"), Settings (
 
 - **Rotate** the xAI, Tavily and LangChain keys that were pasted into an earlier chat session.
 - Optional, free, makes live research reliable: a Tavily API key, a CourtListener token, and `SEC_EDGAR_USER_AGENT` with your own email, all in `backend/.env`.
-- Shortly before the viva, refresh the scenarios: re-run `scripts/snapshot_prices.py` for `tesla_recent_performance`, re-check the Google docket for newer entries (an appeal argument may be scheduled), update `data_as_of`, then run the tests.
+- Shortly before the viva, refresh the scenarios (checklist in `docs/VIVA.md` section 5): re-run `scripts/snapshot_prices.py` for `tesla_recent_performance`, re-check the Google docket for newer entries (an appeal argument may be scheduled), update `data_as_of`, then run `test.cmd`. Not done in Phase 10: the data was one day old.
 - Check in AI Studio which Gemini models this project's free tier allows, and its daily limit.
 - Run the live check with a real Gemini key: put `GEMINI_API_KEY` in `backend/.env`, then from `backend` run `& "$HOME\.venvs\deepsearch\Scripts\python.exe" scripts/live_smoke.py`. Every LLM call should be labelled Gemini, no step should fall back, and all three runs should pass. If `GEMINI_MODEL` is rejected (HTTP 404 or 400), pick a model that AI Studio lists for the free tier.
 - Later, after Phase 10 (user's decision, 2026-10-13): real sign-in with Firebase Authentication (free Spark plan). Work involved: Firebase SDK on Login/Sign Up and a route guard; the backend verifies the Firebase ID token on each request (`firebase-admin`); a `user_id` column on `runs` so each person sees only their own history and saved reports. Until then sign-in stays a demo screen (D5).
