@@ -67,7 +67,8 @@ class RunRegistry:
         try:
             async for values in self.graph.astream(run.state, config={"configurable": {"ctx": ctx}}, stream_mode="values"):
                 run.state = ResearchState.model_validate(values)
-            run.bus.publish("report_ready", {"research_id": run.state.research_id})
+            report = run.state.report.model_dump(mode="json") if run.state.report else None
+            run.bus.publish("report_ready", {"research_id": run.state.research_id, "report": report})
         except Exception as exc:
             reason = str(exc) if isinstance(exc, BudgetExceeded) else f"{type(exc).__name__}: {exc}"
             logger.exception("Run %s failed", run.state.research_id)

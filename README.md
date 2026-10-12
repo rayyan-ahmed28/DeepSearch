@@ -3,8 +3,9 @@
 Agentic AI-driven multi-agent framework for domain-specific research (Legal + Finance MVP).
 
 > **Status: under active development.** Frontend: Dashboard, New Research,
-> Execution and Workspace. Backend: a FastAPI + LangGraph pipeline that runs the
-> finance path end to end (legal side, web research and verification come next).
+> Execution, Workspace and the Final Report (citations, integrity checks, Markdown
+> and PDF export). Backend: a FastAPI + LangGraph pipeline that runs the finance
+> path end to end (legal side, web research and verification come next).
 > The project knowledge base, decisions and roadmap live in
 > [`docs/KNOWLEDGE.md`](docs/KNOWLEDGE.md).
 

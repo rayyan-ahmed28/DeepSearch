@@ -12,6 +12,7 @@ import {
   type SourcePayload,
   type TimelineEntry,
 } from "@/lib/executionEvents";
+import type { Report } from "@/lib/report";
 
 export interface LogEntry {
   id: number;
@@ -43,6 +44,7 @@ export interface StreamState {
   timeline: TimelineEntry[];
   llmCalls: number;
   done: boolean;
+  report: Report | null;
   error: string | null;
 }
 
@@ -60,6 +62,7 @@ export function initialStreamState(): StreamState {
     timeline: [],
     llmCalls: 0,
     done: false,
+    report: null,
     error: null,
   };
 }
@@ -142,7 +145,7 @@ export function streamReducer(state: StreamState, e: ExecEvent): StreamState {
     case "timeline_ready":
       return { ...state, timeline: [...e.payload.events].sort((a, b) => a.date.localeCompare(b.date)) };
     case "report_ready":
-      return { ...state, done: true };
+      return { ...state, done: true, report: e.payload.report ?? null };
     case "error":
       return {
         ...state,

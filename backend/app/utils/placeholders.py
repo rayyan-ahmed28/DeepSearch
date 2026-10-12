@@ -14,8 +14,11 @@ from dataclasses import dataclass, field
 from app.models.schemas import Calculation
 
 PLACEHOLDER = re.compile(r"\{\{calc:([A-Za-z0-9_\-]+)\}\}")
-# Numbers allowed in free text: ISO dates and four-digit years.
-ALLOWED_NUMBERS = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b(?:19|20)\d{2}\b")
+# Numbers allowed in free text: dates (2026-04-10, 10 April 2026) and four-digit years.
+MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December"
+ALLOWED_NUMBERS = re.compile(
+    r"\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2} (?:" + MONTHS + r") (?:19|20)\d{2}\b|\b(?:19|20)\d{2}\b"
+)
 ANY_NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 
 

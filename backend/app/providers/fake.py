@@ -12,7 +12,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from app.models.llm_outputs import FinancePlan, ReportDraft, ReportSection, RouterDecision
+from app.models.llm_outputs import DraftParagraph, DraftSection, FinancePlan, ReportDraft, RouterDecision
 from app.models.schemas import Domain
 from app.providers.base import LLMError
 
@@ -47,6 +47,22 @@ TICKER_PATTERNS = (
 )
 
 PERIOD_LABEL = {"3mo": "three months", "6mo": "six months", "1y": "year", "2y": "two years"}
+
+# A time frame named in the question wins over the depth default.
+PERIOD_PATTERNS = (
+    ("2y", re.compile(r"\b(?:two|2)[ -]years?\b|\b24 months\b")),
+    ("1y", re.compile(r"\b(?:last|past|this|one|1)[ -]year\b|\b12 months\b|\bytd\b|\byear to date\b")),
+    ("6mo", re.compile(r"\b(?:six|6)[ -]months?\b|\bhalf[ -]year\b")),
+    ("3mo", re.compile(r"\b(?:three|3)[ -]months?\b|\bquarter\b")),
+)
+
+
+def find_period(query: str) -> str | None:
+    lowered = query.lower()
+    for period, pattern in PERIOD_PATTERNS:
+        if pattern.search(lowered):
+            return period
+    return None
 
 
 def _matches(text: str, terms: tuple[str, ...]) -> list[str]:
@@ -106,7 +122,7 @@ class FakeLLMProvider:
 
     def _plan_finance(self, ctx: dict[str, Any]) -> FinancePlan:
         company, ticker = find_ticker(ctx["query"])
-        period = ctx["period"]
+        period = find_period(ctx["query"]) or ctx["period"]
         if ticker:
             tasks = [
                 f"Fetch daily price history for {ticker} ({PERIOD_LABEL[period]})",
@@ -123,37 +139,30 @@ class FakeLLMProvider:
         ticker = ctx.get("ticker")
         name = ctx.get("company") or ticker
         calc_ids = {c["id"] for c in ctx.get("calculations", [])}
-        sections: list[ReportSection] = []
+        cite = [s["id"] for s in ctx.get("sources", [])]  # the stand-in relies on everything retrieved
+
+        def para(text: str) -> DraftParagraph:
+            return DraftParagraph(text=text, source_ids=cite)
 
         if ticker and "ret_period" in calc_ids:
-            summary = [
-                f"{name} ({ticker}) returned {{{{calc:ret_period}}}} between {ctx['period_start']} and "
-                f"{ctx['period_end']}, measured from daily closing prices."
+            sections = [
+                DraftSection(kind="executive_summary", heading="Executive summary", paragraphs=[para(
+                    f"{name} ({ticker}) returned {{{{calc:ret_period}}}} between {ctx['period_start']} and "
+                    f"{ctx['period_end']}, measured from daily closing prices."
+                )]),
+                DraftSection(kind="market_reaction", heading="Market behaviour", paragraphs=[
+                    para("Annualised volatility of daily returns was {{calc:vol_annual}}."),
+                    para("The largest peak-to-trough fall in the period (maximum drawdown) was {{calc:dd_max}}."),
+                    para("Prices are split-adjusted daily closes; every figure was computed in code from that series."),
+                ]),
             ]
-            market = [
-                "Annualised volatility of daily returns was {{calc:vol_annual}}.",
-                "The largest peak-to-trough fall in the period (maximum drawdown) was {{calc:dd_max}}.",
-                "Prices are split-adjusted daily closes from Yahoo Finance; every figure was computed in code from that series.",
-            ]
-            sections += [ReportSection(heading="Summary", paragraphs=summary),
-                         ReportSection(heading="Market data", paragraphs=market)]
         elif "finance" in ctx.get("domains", []):
-            sections.append(ReportSection(
-                heading="Summary",
-                paragraphs=["No price data was available for this query, so the report contains no figures."],
-            ))
+            sections = [DraftSection(kind="executive_summary", heading="Executive summary", paragraphs=[DraftParagraph(
+                text="No price data was available for this query, so the report contains no figures."
+            )])]
         else:
-            sections.append(ReportSection(
-                heading="Summary",
-                paragraphs=["This question is legal-only. Legal research is not built yet in this version, so there are no findings to report."],
-            ))
-
-        gaps = ctx.get("gaps") or []
-        if gaps:
-            sections.append(ReportSection(heading="What this run did not cover", paragraphs=gaps))
-        sections.append(ReportSection(
-            heading="Important",
-            paragraphs=["This is research information, not investment or legal advice. Past price movements do not predict future returns."],
-        ))
-        title = f"{name}: price performance over the last {PERIOD_LABEL.get(ctx.get('period', ''), 'period')}" if ticker else "Research summary"
+            sections = [DraftSection(kind="executive_summary", heading="Executive summary", paragraphs=[DraftParagraph(
+                text="This question is legal-only. Legal research is not built yet in this version, so there are no findings to report."
+            )])]
+        title = f"{name}: price performance over the last {PERIOD_LABEL.get(ctx.get('period') or '', 'period')}" if ticker else "Research summary"
         return ReportDraft(title=title, sections=sections)

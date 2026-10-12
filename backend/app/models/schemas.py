@@ -12,10 +12,10 @@ from __future__ import annotations
 import operator
 from datetime import date, datetime, timezone
 from enum import Enum
-from typing import Annotated, Any, Literal, Optional
+from typing import Annotated, Any, Literal, Optional, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 def _new_id() -> str:
@@ -167,6 +167,119 @@ class TimelineEvent(BaseModel):
     source_ids: list[str] = Field(default_factory=list)
 
 
+# ── Report contract (Phase 3) ──────────────────────────────────────
+class SectionKind(str, Enum):
+    """Report sections, in display order. A run only gets the ones that fit its domains."""
+
+    EXECUTIVE_SUMMARY = "executive_summary"
+    KEY_FINDINGS = "key_findings"
+    CASE_OVERVIEW = "case_overview"
+    LEGAL_DEVELOPMENTS = "legal_developments"
+    FINANCIAL_IMPACT = "financial_impact"
+    MARKET_REACTION = "market_reaction"
+    DATA_ANALYSIS = "data_analysis"
+    TIMELINE = "timeline"
+    RISK_FACTORS = "risk_factors"
+    LIMITATIONS = "limitations"
+    SOURCES = "sources"
+    DISCLAIMER = "disclaimer"
+
+
+class CitedText(BaseModel):
+    text: str  # figures already filled in from stored calculations
+    citations: list[str] = Field(default_factory=list)  # Source ids; every one resolves
+
+
+class ParagraphBlock(CitedText):
+    type: Literal["paragraph"] = "paragraph"
+
+
+class BulletsBlock(BaseModel):
+    type: Literal["bullets"] = "bullets"
+    items: list[CitedText]
+
+
+class FindingBlock(BaseModel):
+    """One claim, shown with its claim type and verification status."""
+
+    type: Literal["finding"] = "finding"
+    claim_id: str
+
+
+class ChartBlock(BaseModel):
+    type: Literal["chart"] = "chart"
+    chart_id: str
+
+
+class CalculationsBlock(BaseModel):
+    """A table of figures with the method that produced each one."""
+
+    type: Literal["calculations"] = "calculations"
+    calculation_ids: list[str]
+
+
+class TimelineBlock(BaseModel):
+    type: Literal["timeline"] = "timeline"
+
+
+class SourcesBlock(BaseModel):
+    type: Literal["sources"] = "sources"
+
+
+class CalloutBlock(BaseModel):
+    type: Literal["callout"] = "callout"
+    tone: Literal["info", "warning"] = "info"
+    text: str
+
+
+ReportBlock = Annotated[
+    Union[ParagraphBlock, BulletsBlock, FindingBlock, ChartBlock, CalculationsBlock, TimelineBlock, SourcesBlock, CalloutBlock],
+    Field(discriminator="type"),
+]
+
+
+class ReportSection(BaseModel):
+    id: str
+    kind: SectionKind
+    heading: str
+    blocks: list[ReportBlock]
+
+
+class ReportAudit(BaseModel):
+    """What the code checked before the report was released (D20, section 7)."""
+
+    figures_filled: list[str] = Field(default_factory=list)  # calculation ids used
+    figures_unresolved: list[str] = Field(default_factory=list)  # placeholders with no calculation
+    free_numbers: list[str] = Field(default_factory=list)  # numbers written outside placeholders
+    citations_resolved: int = 0
+    citations_removed: list[str] = Field(default_factory=list)  # ids that matched no source
+    sections_dropped: list[str] = Field(default_factory=list)  # kinds that don't fit the run's domains
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def clean(self) -> bool:
+        return not (self.figures_unresolved or self.free_numbers or self.citations_removed)
+
+
+class Report(BaseModel):
+    """Self-contained: everything the Report screen or an export needs."""
+
+    research_id: str
+    title: str
+    query: str
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    domains: list[Domain]
+    demo_mode: bool
+    llm_provider: str
+    sections: list[ReportSection]
+    sources: list[Source] = Field(default_factory=list)
+    claims: list[Claim] = Field(default_factory=list)
+    calculations: list[Calculation] = Field(default_factory=list)
+    charts: list[ChartSpec] = Field(default_factory=list)
+    timeline: list[TimelineEvent] = Field(default_factory=list)
+    audit: ReportAudit = Field(default_factory=ReportAudit)
+
+
 class ResearchState(BaseModel):
     """The single object threaded through every LangGraph node."""
 
@@ -191,7 +304,7 @@ class ResearchState(BaseModel):
     timeline: Annotated[list[TimelineEvent], operator.add] = Field(default_factory=list)
 
     citations: Annotated[list[str], operator.add] = Field(default_factory=list)  # claim/source ids used in the report
-    report: Optional[dict] = None
+    report: Optional[Report] = None
 
     execution_status: ExecutionStatus = ExecutionStatus.RUNNING
     demo_mode: bool = False

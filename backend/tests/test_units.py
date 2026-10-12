@@ -90,6 +90,10 @@ def test_placeholders_fill_and_audit():
     assert audit.resolved == ["ret_period"] and audit.clean
 
     audit = RenderAudit()
+    render("The court ruled on 10 April 2026, before 2 May 2026.", calcs, audit)
+    assert audit.free_numbers == []  # written dates are not figures
+
+    audit = RenderAudit()
     text = render("Volatility was {{calc:missing}} and about 45 percent.", calcs, audit)
     assert text == "Volatility was [figure unavailable] and about 45 percent."
     assert audit.unresolved == ["missing"]
@@ -128,6 +132,20 @@ def test_fake_router(query, expected):
 )
 def test_find_ticker(query, ticker):
     assert find_ticker(query)[1] == ticker
+
+
+@pytest.mark.parametrize(
+    ("query", "period"),
+    [
+        ("How has Nvidia stock performed over the last year?", "1y"),
+        ("Tesla shares over the past 3 months", "3mo"),
+        ("Apple stock over two years", "2y"),
+        ("How has Tesla stock performed?", "6mo"),  # none named: depth default
+    ],
+)
+def test_fake_plan_uses_the_period_in_the_question(query, period):
+    plan = asyncio.run(FakeLLMProvider().generate("plan_finance", "", FinancePlan, {"query": query, "period": "6mo"}))
+    assert plan.period == period
 
 
 def test_fake_plan_without_ticker_asks_for_one():

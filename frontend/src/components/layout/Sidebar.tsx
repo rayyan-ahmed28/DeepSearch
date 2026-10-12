@@ -14,7 +14,7 @@ const domainLinkClasses =
 
 export default function Sidebar() {
   return (
-    <aside className="fixed top-0 left-0 bottom-0 w-60 bg-surface-container-lowest border-r border-outline-variant/30 flex flex-col justify-between z-40 select-none">
+    <aside className="print:hidden fixed top-0 left-0 bottom-0 w-60 bg-surface-container-lowest border-r border-outline-variant/30 flex flex-col justify-between z-40 select-none">
       <div className="flex flex-col">
         <div className="h-16 px-4 flex items-center justify-between border-b border-outline-variant/20">
           <NavLink to="/dashboard" className="flex items-center gap-2 cursor-pointer">

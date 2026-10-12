@@ -100,7 +100,8 @@ export type ExecEvent =
   | { type: "chart_ready"; payload: ChartPayload }
   | { type: "calculation_ready"; payload: CalculationPayload }
   | { type: "timeline_ready"; payload: { events: TimelineEntry[] } }
-  | { type: "report_ready"; payload: { research_id: string } }
+  // The full report travels with the final event (see lib/report.ts for its shape).
+  | { type: "report_ready"; payload: { research_id: string; report?: import("@/lib/report").Report | null } }
   | { type: "error"; payload: { message: string } };
 
 export interface AgentMeta {

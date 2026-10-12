@@ -32,14 +32,29 @@ class FinancePlan(BaseModel):
     rationale: str
 
 
-class ReportSection(BaseModel):
-    heading: str
+NarrativeKind = Literal[
+    "executive_summary", "case_overview", "legal_developments", "financial_impact", "market_reaction", "risk_factors"
+]
+
+
+class DraftParagraph(BaseModel):
     # Figures appear only as {{calc:<id>}} placeholders, filled in by code (D20).
-    paragraphs: list[str]
+    text: str
+    source_ids: list[str] = Field(default_factory=list)  # ids of the sources this paragraph relies on
+
+
+class DraftSection(BaseModel):
+    kind: NarrativeKind
+    heading: str
+    paragraphs: list[DraftParagraph] = Field(min_length=1)
 
 
 class ReportDraft(BaseModel):
-    """Report Architect output before placeholders are filled and audited."""
+    """Report Architect output: narrative sections only.
+
+    Code adds key findings, data tables, the timeline, limitations, sources and
+    the disclaimer, and drops any section that does not fit the run's domains.
+    """
 
     title: str
-    sections: list[ReportSection] = Field(min_length=1)
+    sections: list[DraftSection] = Field(min_length=1)

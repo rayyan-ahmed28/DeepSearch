@@ -124,7 +124,7 @@ function sampleRecord(
   config: RunConfig,
   opts: { sample: boolean; startedAt: number; skipped: boolean; note?: string },
 ): RunRecord {
-  const sequence = buildMockSequence(domainsForMode(config.mode), config.mode !== "auto", id);
+  const sequence = buildMockSequence(domainsForMode(config.mode), config.mode !== "auto", id, config.query);
   const durationMs = sequence[sequence.length - 1].at;
   const state = opts.skipped ? fold(sequence.map((s) => s.event)) : play(id, sequence, opts.startedAt);
   return {

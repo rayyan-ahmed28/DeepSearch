@@ -70,4 +70,4 @@ def get_report(research_id: str, request: Request) -> dict:
     state = _run_or_404(_registry(request), research_id).state
     if state.report is None:
         raise HTTPException(status_code=409, detail="The report is not ready yet")
-    return state.report
+    return state.report.model_dump(mode="json")

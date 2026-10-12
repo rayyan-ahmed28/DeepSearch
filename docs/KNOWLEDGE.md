@@ -148,8 +148,13 @@ Every message is `{type, payload, timestamp, seq}`. Types: `domain_classified` (
 Implemented (Phase 2): `POST /api/research` (`{query (1-2000 chars), mode, depth}` → `{research_id, llm_provider, demo_mode}`), `GET /api/research/{id}` (status, domains, errors), `GET /api/research/{id}/report` (409 until ready), `GET /api/health` (mode, LLM provider, booleans for which providers are configured, never key values), `WS /ws/research/{id}?after=<seq>` (backlog then live; unknown id → an `error` event and close code 4404). Interactive docs at `http://localhost:8000/docs`.
 Not yet: `GET /api/research/history` (Phase 7), `GET /api/demo/scenarios` (Phase 4). Runs live in server memory until persistence.
 
-### Planned report contract (to be defined in Phase 2)
-Structured report: title, generated_at, domains, demo_mode, ordered sections; each section has id, heading and blocks (paragraph with inline citation references, bullet list, chart reference, table, callout). Each citation points to a `Source` id. **Numbers are never free text** (decision D20): the Report Architect writes placeholders such as `{{calc:<id>}}` and code substitutes the stored value, so every number in the report comes from a stored calculation or data point by construction. Define this contract as a Pydantic model in `schemas.py` before building the Final Report screen, and mirror it in TypeScript. The report must adapt: a legal-only query has no Financial Impact section; a finance-only query has no Case Overview. Section catalogue: Executive Summary, Key Findings, Case Overview, Legal Developments, Financial Impact, Market Reaction, Risk Factors, Timeline, Data Analysis, Sources and Evidence.
+### Report contract (done, Phase 3)
+`Report` in `schemas.py` (TypeScript mirror: `frontend/src/lib/report.ts`) is self-contained: research_id, title, query, generated_at, domains, demo_mode, llm_provider, ordered `sections`, plus the `sources`, `claims`, `calculations`, `charts` and `timeline` it refers to, and an `audit`. It travels in the `report_ready` event and is also served by `GET /api/research/{id}/report`.
+- **Sections** have a `kind` (`SectionKind`, whose order is the display order): executive_summary, key_findings, case_overview, legal_developments, financial_impact, market_reaction, data_analysis, timeline, risk_factors, limitations, sources, disclaimer.
+- **Blocks** (discriminated on `type`): paragraph (text + citations), bullets, finding (a claim id), chart (a chart id), calculations (a table of calculation ids with methods), timeline, sources, callout. Each citation is a `Source` id.
+- **Who writes what:** the Report Architect's one LLM call returns a `ReportDraft` with narrative sections only (`DraftParagraph` = text + source_ids). `utils/report_builder.py` then fills `{{calc:<id>}}` placeholders (D20), keeps only citations that resolve to a retrieved source, drops narrative sections that don't fit the run's domains (a finance-only report never has a Case overview), and adds the deterministic sections: key findings, data analysis, timeline, limitations, sources and disclaimer.
+- **Audit** (`ReportAudit`): figures_filled, figures_unresolved, free_numbers, citations_resolved, citations_removed, sections_dropped, and a computed `clean`. The Report screen shows it as "Report integrity".
+- Sample runs build their report from the replayed events with the same rules (`assembleReport` in `lib/report.ts`), so the integrity panel is real for them too.
 
 ### Research depth (decision D8)
 | Depth | Sources per manager | Verification passes | Index comparison (finance) |
@@ -181,7 +186,7 @@ Structured report: title, generated_at, domains, demo_mode, ordered sections; ea
 - A claim backed by an official court or regulatory source is verified (a company statement is verified by the company's own filing or release).
 - Two or more independent source domains agreeing makes a claim corroborated.
 - Contradictory dates or figures across sources make a claim conflicting; show both.
-- **Number audit:** every number in the Financial Impact, Market Reaction and Data Analysis sections must come from a stored calculation or data point. With D20's placeholders this holds by construction; the audit checks that every placeholder resolves. Citation ids that do not resolve are stripped.
+- **Number audit:** every number in the Financial Impact, Market Reaction and Data Analysis sections must come from a stored calculation or data point. With D20's placeholders this holds by construction; the audit checks that every placeholder resolves and flags any other number in the narrative (dates such as "10 April 2026" or "2026-04-10" and four-digit years are allowed). Citation ids that do not resolve are stripped and counted.
 
 ### Citations
 Every load-bearing factual claim carries a citation. Clicking a citation opens a source panel: source, source type (Official / Regulatory / Company / Reputable News / Secondary), publication date, URL, verification status (Verified / Corroborated / Unverified / Conflicting), and the evidence snippet. **Never fabricate a citation or a URL.** A claim that cannot be backed by a real retrieved source is labelled analysis or unverified, not cited.
@@ -223,6 +228,8 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D23 | Develop natively on Windows: venv at `%USERPROFILE%\.venvs\deepsearch`, `pydantic<2.14`, exact versions in `requirements-lock.txt` | Smart App Control blocks pydantic-core 2.50; long paths break Windows' 260-character limit; WSL's Python lacks pip without sudo (section 16) |
 | D25 | The frontend uses the backend when `/api/health` answers, otherwise the sample replay; every screen says which ("Backend run · …" or "Demo replay of sample events (Backend not running)") | The app always works, and never passes a replay off as a live run |
 | D26 | If Gemini fails (quota, outage, bad JSON), the call falls back to the rule-based stand-in for that step; the failed call still counts against the budget and the activity feed says so | One failed call never kills a run (D12), and the fallback is visible |
+| D28 | Export = Markdown download plus browser print-to-PDF (print styles switch to black on white) | Closes the export open item at ₹0 with no server-side PDF library |
+| D29 | The Finance Manager uses the time frame the question names ("last year", "three months"); the depth setting is only the default | A question about "the last year" must not get six months of data |
 | D27 | Until recorded scenarios exist (Phase 4), backend Demo Mode = rule-based stand-in for the LLM + live Yahoo prices (yfinance needs no key) | Runs real data with zero keys; recorded runs (D21) arrive with the demo scenarios |
 | D24 | Gemini models: `gemini-3.5-flash-lite` by default (`gemini-3.8-flash` if the free tier allows), embeddings `gemini-embedding-001` | `gemini-2.0-flash` shut down 2026-06-01 and `text-embedding-004` on 2026-01-14; Google recommends 3.5 Flash-Lite or 3.8 Flash for new projects |
 
@@ -352,6 +359,15 @@ An earlier version of this file described a richer Execution screen (a 780×650 
 - Verified in the browser on 2026-10-12: combined, Legal-only and Finance-only runs; Ctrl+Enter submission; suggested-query clicks.
 - Optional if time allows: re-add pause/abort and a retrying state.
 
+### Final Report screen (done, Phase 3)
+Ported from the Stitch `deepsearch_final_research_dossier_intelligence_report` screen with all its content replaced (`pages/ReportPage.tsx`, `components/report/`).
+- Header: title, the question, generation time (UTC), domain chips, source and figure counts, engine badge; buttons for Workspace, Execution view, **Markdown** download and **Print / Save as PDF**.
+- Left: sticky table of contents that highlights the section in view, and the **Report integrity** panel (figures filled / unresolved / typed outside placeholders, citations resolved / removed, sections dropped; "Checked by code, not by the LLM").
+- Body: numbered sections ("01 //"); paragraphs with numbered citation chips; clicking a chip opens an inline **source card** (type, publication date or "Date unknown", retrieving agent, evidence excerpt, link or "No link (sample data)", and every finding that cites the source with its verification status). Key-figure tiles under the executive summary, finding cards, the chart, a figures table with methods, the timeline and a sources manifest.
+- States: "still being written" while the run is going; an error banner if it stopped before a report existed.
+- Lazy-loaded with the Workspace so Recharts stays out of the main bundle.
+- Verified in the browser on 2026-10-12: combined, legal-only (finance section dropped and shown in the audit) and in-progress sample reports; a backend NVDA report with real data; citation cards; Markdown export checked in Node.
+
 ### Run store (done, Phase 1)
 - `store/runStore.ts` (Zustand) holds every run keyed by research id: config, start time, and the state folded from its events by the pure `lib/streamReducer.ts`. Execution, Workspace and (later) Report read the same record, so a run keeps going when you change pages.
 - Runs get real ids (`r…`). `startRun(config)` is called by Dashboard and New Research; Execution has Skip to end and Replay.
@@ -404,13 +420,14 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Research Execution | Done, simpler version (section 12); domain-aware replay verified in the browser |
 | Run store (shared by all research screens) | Done (Phase 1) |
 | Research Workspace | Done (Phase 1) |
-| Final Report, Settings, Landing | Not built (stubs) |
-| Backend | Foundation + finance slice (Phase 2), 44 tests; frontend streams real runs over the WebSocket |
+| Report contract and Final Report screen | Done (Phase 3) |
+| Settings, Landing | Not built (stubs) |
+| Backend | Foundation + finance slice (Phase 2) + report contract (Phase 3), 50 tests; frontend streams real runs over the WebSocket |
 
 **Remaining work, in order (reordered 2026-10-12 so the riskiest integration happens early):**
 1. ~~Shared run store (keyed by research id) and the Research Workspace screen.~~ Done 2026-10-12.
 2. ~~Backend foundation plus one thin end-to-end slice~~ Done 2026-10-12: config, `LLMProvider` with the call counter, event bus with backlog replay, REST + WebSocket, and Router → Finance Manager → Financial Data → Data Analysis → a minimal Report, streamed into the existing Execution screen.
-3. Report contract as a Pydantic model (with D20 placeholders), then the Final Report screen and citation panel.
+3. ~~Report contract as a Pydantic model (with D20 placeholders), then the Final Report screen and citation panel.~~ Done 2026-10-12.
 4. Demo scenarios as recorded runs (D21), with real, dated data.
 5. Legal Manager and the remaining workers (Legal Records, Web Research via GPT Researcher, EDGAR).
 6. Verification (D19), Report Architect (D20) and the live smoke script.
@@ -439,7 +456,9 @@ The approved Stitch mockups contained copy that cannot ship. Fixed so far:
 | Execution (2026-10-12) | Mock counted page compression as an LLM call and labelled Verification as a pure LLM agent | Compression not counted; Verification labelled RULES + LLM |
 | Workspace (Phase 1) | Confidence percentages, "SHA-256 Validated", "Enclave: Zero-Knowledge", compute metrics and a "Zero-Knowledge Proof" badge, "Telemetry: Optimal", "Corporate Authenticated", "C-Suite Signed", "Cross-verified via SEC XBRL Engine", and DOJ v. Live Nation content with invented financials | Rule-based verification status with its explanation, an LLM call budget meter, fictional Example Corp sample with synthetic prices labelled as such |
 
-Still to review when built: Final Report (the mockup is about a real company's real lawsuit with invented financials; replace entirely), Landing (counters like "100% auditable"), Settings (fake registries, "SOC2/HIPAA", dead "Flush Cache"/"Export Audit Log" controls). The Report screen's extra "Research Dossier" sidebar item is an inconsistency to reconcile.
+| Final Report (Phase 3) | DOJ v. Live Nation content with invented financials and valuation scenarios, "Declassified & enclave-audited", "Verified consensus (99.8%)", "SHA-256 Validated", "Cryptographically verified (XBRL hash match)", "Authenticated", "multi-agent swarm ... zero hallucination" | Fictional Example Corp sample or real backend data; Report integrity panel showing what code actually checked; citation cards with real source fields |
+
+Still to review when built: Landing (counters like "100% auditable"), Settings (fake registries, "SOC2/HIPAA", dead "Flush Cache"/"Export Audit Log" controls). The Report screen's extra "Research Dossier" sidebar item is an inconsistency to reconcile.
 
 ---
 
@@ -493,7 +512,6 @@ Still to review when built: Final Report (the mockup is about a real company's r
 - Confirm the three demo scenarios; pin the Google case to one named case and a dated milestone.
 - Check in AI Studio which Gemini models this project's free tier allows, and its daily limit.
 - Run the price snapshot script and later the live smoke script with real keys (both can run on this machine).
-- Decide whether Markdown plus print-to-PDF export is enough (Phase 3).
 - Optional: a real name for the Dashboard greeting.
 - Optional: re-add pause/abort and a retrying state to the Execution screen.
 - Optional: upgrade Recharts 2 to 3 (npm reports 2.x as no longer maintained).

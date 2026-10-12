@@ -240,7 +240,7 @@ export default function DashboardPage() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => navigate(item.completed ? `/research/${item.id}/workspace` : `/research/${item.id}`)}
+                onClick={() => navigate(item.completed ? `/research/${item.id}/report` : `/research/${item.id}`)}
                 className="text-left flex items-center justify-between gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 hover:border-primary-container transition-all"
               >
                 <div className="flex flex-col gap-1.5">

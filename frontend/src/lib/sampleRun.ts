@@ -17,6 +17,7 @@ import type {
   TimedEvent,
   TimelineEntry,
 } from "@/lib/executionEvents";
+import { assembleReport, type DraftSection } from "@/lib/report";
 
 export const SAMPLE_TICKER = "EXMP";
 const RULING_DATE = "2026-04-10";
@@ -297,19 +298,98 @@ function inScope(scope: Scope, domains: DomainName[]): boolean {
 }
 
 /**
- * The sample run trimmed to the domains of this run, so a Legal-only or
- * Finance-only choice replays only the agents that would actually work.
+ * The Report Architect's narrative for the sample, written the way the real
+ * one must be: figures only as {{calc:<id>}} placeholders, every paragraph
+ * citing the sources it relies on. Sections that don't fit the run's domains
+ * are dropped by `assembleReport`, exactly as the backend does.
  */
-export function buildMockSequence(domains: DomainName[], manualOverride: boolean, researchId: string): TimedEvent[] {
+function sampleDrafts(domains: DomainName[]): DraftSection[] {
+  const legal = domains.includes("legal");
+  const finance = domains.includes("finance");
+  const summary: DraftSection["paragraphs"] = [];
+  if (legal) {
+    summary.push({
+      text: "On 10 April 2026 a court denied Example Corp's motion to dismiss the regulator's case, so the case proceeds to discovery. The regulator alleges the company misstated its product safety testing; the company disputes this.",
+      source_ids: ["s4", "s6", "s1", "s7"],
+    });
+  }
+  if (finance) {
+    summary.push({
+      text: `${SAMPLE_TICKER} returned {{calc:ret_event_window}} from the close before the ruling to the close after it.`,
+      source_ids: ["s5"],
+    });
+  }
+  return [
+    { kind: "executive_summary", heading: "Executive summary", paragraphs: summary },
+    {
+      kind: "case_overview",
+      heading: "Case overview",
+      paragraphs: [{
+        text: "The regulator filed a complaint against Example Corp on 2 March 2026, alleging that the company misstated the results of its product safety testing. These are allegations: no court has ruled on whether they are true.",
+        source_ids: ["s1", "s2"],
+      }],
+    },
+    {
+      kind: "legal_developments",
+      heading: "Legal developments",
+      paragraphs: [
+        { text: "The court denied the company's motion to dismiss and the case moves to discovery.", source_ids: ["s4", "s6"] },
+        { text: "Example Corp said it disagrees with the allegations and will defend itself in court.", source_ids: ["s7"] },
+      ],
+    },
+    {
+      kind: "market_reaction",
+      heading: "Market reaction",
+      paragraphs: [{
+        text: `${SAMPLE_TICKER} returned {{calc:ret_event_window}} across the ruling, measured close to close. The fall coincided with the ruling and was reported in the press; this report does not claim the ruling alone caused it.`,
+        source_ids: ["s5"],
+      }],
+    },
+    {
+      kind: "risk_factors",
+      heading: "Risk factors",
+      paragraphs: [{
+        text: "Further rulings in the case could move the share price again. This is a possibility, not a forecast. One analyst estimate suggests earnings could be reduced, but it has no supporting source and is shown as unverified.",
+        source_ids: legal ? ["s4"] : [],
+      }],
+    },
+  ];
+}
+
+const SAMPLE_TITLES: Record<string, string> = {
+  "legal,finance": "Example Corp: the regulator's case and the market reaction (sample report)",
+  legal: "Example Corp: status of the regulator's case (sample report)",
+  finance: "Example Corp: market reaction to the court ruling (sample report)",
+};
+
+/**
+ * The sample run trimmed to the domains of this run, so a Legal-only or
+ * Finance-only choice replays only the agents that would actually work. The
+ * final event carries a report assembled from exactly the events replayed.
+ */
+export function buildMockSequence(domains: DomainName[], manualOverride: boolean, researchId: string, query: string): TimedEvent[] {
   const rationale = manualOverride
     ? "Domain chosen manually on the research form (overrides automatic routing)."
     : "Query mentions both a regulatory dispute and stock impact.";
-  const bookends: ScopedEvent[] = [
-    ev(1400, { type: "domain_classified", payload: { domains, rationale } }),
-    ev(17700, { type: "report_ready", payload: { research_id: researchId } }),
-  ];
-  return [...SAMPLE_RUN, ...bookends]
+  const steps = [...SAMPLE_RUN, ev(1400, { type: "domain_classified", payload: { domains, rationale } })]
     .filter((e) => inScope(e.scope, domains))
     .sort((a, b) => a.at - b.at)
     .map(({ at, event }) => ({ at, event }));
+
+  const events = steps.map((s) => s.event);
+  const report = assembleReport({
+    researchId,
+    title: SAMPLE_TITLES[[...domains].sort().join(",")] ?? SAMPLE_TITLES["legal,finance"],
+    query,
+    domains,
+    llmProvider: "sample",
+    drafts: sampleDrafts(domains),
+    gaps: ["This is a sample report about a fictional company. Prices are synthetic and generated in code, and the sources are illustrative, with no links."],
+    sources: events.flatMap((e) => (e.type === "source_found" ? [e.payload] : [])),
+    claims: events.flatMap((e) => (e.type === "claim_verified" ? [e.payload] : [])),
+    calculations: events.flatMap((e) => (e.type === "calculation_ready" ? [e.payload] : [])),
+    charts: events.flatMap((e) => (e.type === "chart_ready" ? [e.payload] : [])),
+    timeline: events.flatMap((e) => (e.type === "timeline_ready" ? e.payload.events : [])),
+  });
+  return [...steps, { at: 17700, event: { type: "report_ready", payload: { research_id: researchId, report } } }];
 }

@@ -13,6 +13,26 @@
   }
 }
 
+/* Print / Save as PDF: drop the dark theme for ink-friendly black on white. */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  * {
+    color: #111 !important;
+    background-color: transparent !important;
+    border-color: #ccc !important;
+    box-shadow: none !important;
+  }
+  section {
+    break-inside: avoid-page;
+  }
+}
+
 /* Hide scrollbars the way the approved Stitch screens do, while keeping scroll working */
 ::-webkit-scrollbar {
   display: none;

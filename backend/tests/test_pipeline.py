@@ -25,6 +25,17 @@ def types_of(run):
     return [e.type for e in run.bus.history]
 
 
+def report_text(report) -> str:
+    parts = []
+    for section in report.sections:
+        for block in section.blocks:
+            if block.type in ("paragraph", "callout"):
+                parts.append(block.text)
+            elif block.type == "bullets":
+                parts += [item.text for item in block.items]
+    return " ".join(parts)
+
+
 def llm_calls(run):
     return sum(1 for e in run.bus.history if e.type == "activity_log" and e.payload["llm_call"])
 
@@ -48,11 +59,25 @@ def test_finance_run_end_to_end():
     assert len(state.financial_data) == 10 and len(state.sources) == 1
 
     report = state.report
-    assert report["audit"]["clean"] is True
-    text = " ".join(p for s in report["sections"] for p in s["paragraphs"])
+    assert report.audit.clean is True
+    assert report.audit.citations_resolved > 0 and not report.audit.citations_removed
+    text = report_text(report)
     for calc in state.calculations:
         assert format_calculation(calc) in text  # every figure came from a stored calculation
-    assert "{{calc:" not in text and "not investment" in text
+    assert "{{calc:" not in text and "not legal or investment advice" in text
+
+    kinds = [s.kind.value for s in report.sections]
+    assert kinds[0] == "executive_summary"
+    assert {"market_reaction", "data_analysis", "limitations", "sources", "disclaimer"} <= set(kinds)
+    assert "case_overview" not in kinds  # a finance-only report has no legal sections
+    source_id = state.sources[0].id
+    summary = report.sections[0].blocks[0]
+    assert summary.citations == [source_id]  # cites the price source it relies on
+
+    # The report_ready event carries the full report for the browser.
+    ready = run.bus.history[-1]
+    assert ready.payload["report"]["research_id"] == state.research_id
+    assert ready.payload["report"]["audit"]["clean"] is True
 
 
 def test_manual_domain_choice_skips_router_call():
@@ -71,8 +96,10 @@ def test_legal_only_run_reports_the_gap_honestly():
                if e.type == "agent_status" and e.payload["status"] == "skipped"}
     assert "Not built yet" in skipped["legal_manager"]
     assert types[-1] == "report_ready"
-    text = " ".join(p for s in run.state.report["sections"] for p in s["paragraphs"])
-    assert "not built yet" in text
+    report = run.state.report
+    assert "not built yet" in report_text(report)
+    kinds = {s.kind.value for s in report.sections}
+    assert "data_analysis" not in kinds and "market_reaction" not in kinds
 
 
 def test_failed_price_fetch_does_not_crash_the_run():
@@ -84,8 +111,8 @@ def test_failed_price_fetch_does_not_crash_the_run():
     assert ("calculator", "skipped") in statuses
     assert types_of(run)[-1] == "report_ready"
     assert run.state.execution_status == ExecutionStatus.COMPLETED
-    gaps = next(s for s in run.state.report["sections"] if s["heading"] == "What this run did not cover")
-    assert any("simulated outage" in p for p in gaps["paragraphs"])
+    limitations = next(s for s in run.state.report.sections if s.kind.value == "limitations")
+    assert any("simulated outage" in item.text for item in limitations.blocks[0].items)
 
 
 def test_budget_exceeded_fails_cleanly():

@@ -29,13 +29,13 @@ def _clean_ticker(raw: str | None) -> str | None:
 async def finance_manager_node(state: ResearchState, config: RunnableConfig) -> dict:
     ctx = get_ctx(config)
     ctx.status("finance_manager", "running", "Planning financial tasks")
-    period = PERIOD_BY_DEPTH[state.depth.value]
+    default_period = PERIOD_BY_DEPTH[state.depth.value]  # used unless the question names a time frame
     plan = await ctx.ask(
         "finance_manager", "plan_finance", "Drafting financial research plan",
-        prompts.plan_finance(state.user_query, period), FinancePlan,
-        {"query": state.user_query, "period": period},
+        prompts.plan_finance(state.user_query, default_period), FinancePlan,
+        {"query": state.user_query, "period": default_period},
     )
-    plan = plan.model_copy(update={"ticker": _clean_ticker(plan.ticker), "period": period})
+    plan = plan.model_copy(update={"ticker": _clean_ticker(plan.ticker)})
     ctx.publish("plan_created", {"manager": "finance", "tasks": plan.tasks})
     ctx.log("finance_manager", plan.rationale)
     ctx.status("finance_manager", "done")

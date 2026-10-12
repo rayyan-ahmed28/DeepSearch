@@ -1,8 +1,6 @@
-"""Report Architect: one LLM call writes the report; code fills every figure (D20)."""
+"""Report Architect: one LLM call writes the narrative; code builds and audits the report."""
 
 from __future__ import annotations
-
-from datetime import datetime, timezone
 
 from langchain_core.runnables import RunnableConfig
 
@@ -10,7 +8,7 @@ from app.graph.context import get_ctx
 from app.models.llm_outputs import FinancePlan, ReportDraft
 from app.models.schemas import Domain, ExecutionStatus, ResearchState
 from app.providers import prompts
-from app.utils.placeholders import RenderAudit, render
+from app.utils.report_builder import build_report
 
 
 def _gaps(state: ResearchState) -> list[str]:
@@ -39,41 +37,26 @@ async def report_architect_node(state: ResearchState, config: RunnableConfig) ->
         "period_start": prices[0].date.isoformat() if prices else None,
         "period_end": prices[-1].date.isoformat() if prices else None,
         "calculations": [c.model_dump(mode="json") for c in state.calculations],
-        "gaps": _gaps(state),
+        "sources": [{"id": s.id, "title": s.title, "source_type": s.source_type.value} for s in state.sources],
     }
     draft = await ctx.ask(
         "report_architect", "report", "Writing the report from stored calculations",
         prompts.report(state.user_query, context), ReportDraft, context,
     )
 
-    calcs = {c.id: c for c in state.calculations}
-    audit = RenderAudit()
-    sections = [
-        {
-            "id": f"s{i}",
-            "heading": section.heading,
-            "paragraphs": [render(p, calcs, audit) for p in section.paragraphs],
-        }
-        for i, section in enumerate(draft.sections, start=1)
-    ]
-    if audit.unresolved:
-        ctx.log("report_architect", f"Removed {len(audit.unresolved)} figure(s) with no stored calculation", level="warn")
+    report = build_report(state, draft, llm_provider=ctx.llm.name, gaps=_gaps(state))
+    audit = report.audit
+    if audit.figures_unresolved:
+        ctx.log("report_architect", f"Removed {len(audit.figures_unresolved)} figure(s) with no stored calculation", level="warn")
     if audit.free_numbers:
         ctx.log("report_architect", f"Flagged {len(audit.free_numbers)} number(s) written outside placeholders", level="warn")
-    ctx.log("report_architect", f"Filled {len(audit.resolved)} figure(s) from stored calculations")
-
-    report = {
-        "title": draft.title,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "domains": [d.value for d in state.detected_domains],
-        "demo_mode": state.demo_mode,
-        "sections": sections,
-        "audit": {
-            "resolved": audit.resolved,
-            "unresolved": audit.unresolved,
-            "free_numbers": audit.free_numbers,
-            "clean": audit.clean,
-        },
-    }
+    if audit.citations_removed:
+        ctx.log("report_architect", f"Removed {len(audit.citations_removed)} citation(s) that matched no retrieved source", level="warn")
+    if audit.sections_dropped:
+        ctx.log("report_architect", f"Dropped section(s) that don't fit this run: {', '.join(audit.sections_dropped)}", level="warn")
+    ctx.log(
+        "report_architect",
+        f"Filled {len(audit.figures_filled)} figure(s) from stored calculations; {audit.citations_resolved} citation(s) resolve",
+    )
     ctx.status("report_architect", "done")
     return {"report": report, "execution_status": ExecutionStatus.COMPLETED}
