@@ -135,12 +135,12 @@ LangGraph orchestrates agents, state, conditional routing, parallel execution, a
 ### Shared research state (`backend/app/models/schemas.py`, Pydantic v2, implemented and tested)
 - Enums: `SourceType` (official_court, regulatory, company, reputable_news, secondary), `VerificationStatus` (verified, corroborated, unverified, conflicting), `ClaimType` (established_fact, allegation, party_claim, company_statement, regulatory_statement, news_report, analysis), `Domain` (legal, finance), `ResearchDepth` (quick, standard, deep), `TaskStatus`, `ExecutionStatus`.
 - Models: `Source`, `Claim`, `Task`, `FinancialDataPoint`, `Calculation`, `ChartSpec` (`type`: line | bar | timeline, `data`: Recharts-ready records), `TimelineEvent`, `ResearchState`, `ResearchRequest` (`query`, `mode`: auto | legal | finance | legal_finance, `depth`), `WSEvent`.
-- Added 2026-10-12: `Source.snippet` (evidence excerpt for the citation panel; `published_date` is often unknown for web pages and the UI must say "date unknown"), `Claim.event_date` / `value` / `unit` (structured parts, so code can detect conflicting dates and figures), `FinancialDataPoint.ticker` and `split_adjusted`, `WSEvent.seq`, and the list reducers described in section 5.
+- Added 2026-10-12: `Source.snippet` (evidence excerpt for the citation panel; `published_date` is often unknown for web pages and the UI must say "date unknown"), `Claim.event_date` / `value` / `unit` (structured parts, so code can detect conflicting dates and figures), `FinancialDataPoint.ticker` and `split_adjusted`, `WSEvent.seq`, and the list reducers described in section 5. Phase 1 added `Claim.domain` (`legal`, `finance`, or `None` for cross-domain) and the `timeline_ready` event.
 - `ResearchState` fields: research_id, user_query, depth, mode_override, detected_domains, primary_domain, research_plan, tasks, sources, evidence, claims, financial_data, calculations, charts, timeline, citations, report, execution_status, demo_mode, errors, created_at. Nodes append to lists rather than overwrite them.
 - Timestamps are timezone-aware UTC.
 
 ### WebSocket event contract (`WSEvent.type`)
-Every message is `{type, payload, timestamp, seq}`. Types: `domain_classified` (domains, rationale), `plan_created` (manager, tasks), `agent_status` (agent, status: idle | running | done | skipped | error, detail), `activity_log` (agent, message, level, llm_call), `source_found`, `claim_verified`, `chart_ready`, `report_ready`, `error`. The frontend mock (`frontend/src/lib/executionEvents.ts`) emits exactly these payload shapes, so the real socket is a drop-in replacement.
+Every message is `{type, payload, timestamp, seq}`. Types: `domain_classified` (domains, rationale), `plan_created` (manager, tasks), `agent_status` (agent, status: idle | running | done | skipped | error, detail), `activity_log` (agent, message, level, llm_call), `source_found` (a `Source`), `claim_verified` (a `Claim`, status in `verification`), `chart_ready` (a `ChartSpec`), `timeline_ready` (events: `TimelineEvent[]`), `report_ready` (research_id), `error` (message). The TypeScript mirror of these shapes is `frontend/src/lib/executionEvents.ts`; the sample replay emits exactly them, so the real socket is a drop-in replacement. One frontend difference: `Source.url` is optional there, because sample data has no real link and must not invent one.
 
 **Late connections:** the browser can only open `WS /ws/research/{id}` after `POST /api/research` has returned, so early events would be lost. The per-run event bus keeps the run's event history and replays it when a socket connects; the client uses `seq` to skip events it already has.
 
@@ -328,7 +328,7 @@ The Stitch project export (zip) contains one folder per screen with `code.html` 
 `deepsearch_terminal_authentication_1` is an unused draft and is ignored. Several `screen.png` files in the first export were broken placeholders; the user re-supplied screenshots. Stitch used Tailwind via CDN with an inline Material Design 3 config and Google Material Symbols icons; both were replaced by a real Tailwind build and lucide-react. Stitch's inline `navigateToScreen(...)` handlers are replaced by React Router.
 
 ### Routes
-`/` Landing, `/login`, `/signup`, `/dashboard`, `/research/new`, `/research/:id` (Execution), `/research/:id/workspace`, `/research/:id/report`, `/settings`, anything else redirects to `/`. Until the Landing page exists, `/` redirects to `/login`. Intended navigation: Landing to Sign Up or Login; Login, Sign Up and "Continue as guest (Demo Mode)" to Dashboard; Dashboard input or suggestion to Execution; completed recent research to Report; New Research "Start Research" to Execution; Execution to Workspace and (when complete) Final Report; Workspace to Final Report. Auth is UI-only: forms just navigate to the Dashboard.
+`/` Landing, `/login`, `/signup`, `/dashboard`, `/research/new`, `/research/:id` (Execution), `/research/:id/workspace`, `/research/:id/report`, `/settings`, anything else redirects to `/`. Until the Landing page exists, `/` redirects to `/login`. Intended navigation: Landing to Sign Up or Login; Login, Sign Up and "Continue as guest (Demo Mode)" to Dashboard; Dashboard input or suggestion to Execution; completed recent research to Workspace (to Report once it exists); New Research "Start Research" to Execution; Execution to Workspace and (when complete) Final Report; Workspace to Final Report. Auth is UI-only: forms just navigate to the Dashboard.
 
 ### Architecture and conventions
 - `@/` alias maps to `src/`; it must be configured in both `tsconfig.json` (paths) and `vite.config.ts` (`resolve.alias`), and `@types/node` is needed for `vite.config.ts`.
@@ -343,13 +343,26 @@ An earlier version of this file described a richer Execution screen (a 780×650 
 - SVG topology (800×440 viewBox) with nine circular nodes and twelve edges (`components/execution/AgentTopology.tsx`). Node states: idle, running (pulse), done, skipped, error. Each node is labelled LLM, RULES + LLM (Verification, D19) or DETERMINISTIC.
 - Header with the query, domain chips and routing rationale; stats for elapsed time, LLM calls against the budget of 8, sources found and claims checked; a progress bar; Skip to end and Replay; Open workspace and View report on completion; an activity feed with an LLM CALL tag on each call.
 - `lib/executionEvents.ts` holds the agents, edges and a ~17.7 s sample run. `buildMockSequence(domains)` trims it to the run's domains, so a Legal-only or Finance-only choice skips the other manager and its workers. LLM calls: 7 on a combined run, 5 on a single-domain run. Page compression is embedding-based and is not counted as an LLM call.
-- `hooks/useResearchStream.ts` replays the sequence through a reducer. Managers for domains that were not chosen, and any worker whose managers were all skipped, become `skipped`, so progress still reaches 100%.
+- The run comes from the shared run store (below). `lib/streamReducer.ts` folds events into state; managers for domains that were not chosen, and any worker whose managers were all skipped, become `skipped`, so progress still reaches 100%.
 - The header reads "Demo replay of sample events".
 - Verified in the browser on 2026-10-12: combined, Legal-only and Finance-only runs; Ctrl+Enter submission; suggested-query clicks.
 - Optional if time allows: re-add pause/abort and a retrying state.
 
-### Known frontend debt (addressed in Phase 1)
-The run state lives inside the Execution page's hook, so it resets when the user navigates away. It must move into a store keyed by research id, and Workspace and Report must read from the same store.
+### Run store (done, Phase 1)
+- `store/runStore.ts` (Zustand) holds every run keyed by research id: config, start time, and the state folded from its events by the pure `lib/streamReducer.ts`. Execution, Workspace and (later) Report read the same record, so a run keeps going when you change pages.
+- Runs get real ids (`r…`). `startRun(config)` is called by Dashboard and New Research; Execution has Skip to end and Replay.
+- **Survives a reload:** only `{id, config, startedAt, skipped}` is saved to localStorage (wrapped in try/catch, capped at 20 runs). The sample replay is deterministic, so state is rebuilt by replaying events up to "now" and the rest is rescheduled. When the backend exists, the replay driver is swapped for the WebSocket, whose backlog replay gives the same behaviour.
+- The Dashboard's Recent Research lists this browser's runs first, then three fictional samples (`demo-1` combined, `demo-2` Legal, `demo-3` Finance, live replay), created on demand from `SAMPLE_RUNS` in `lib/runConfig.ts`. An unknown id shows a "This run isn't in this browser" panel.
+
+### Research Workspace screen (done, Phase 1)
+Ported from the Stitch `deepsearch_active_research_workspace` screen, three panels:
+- **Agents** (left): each agent's status, latest activity line and LLM / RULES + LLM / DETERMINISTIC label; an LLM call budget meter replaces the mockup's fake "compute metrics".
+- **Findings** (centre): All / Legal / Finance / Cross-domain filters. Each finding shows its claim type (allegations amber), domain, verification status (hover explains the rule), a plain note for allegations ("Verified means the allegation was made, not that it is true"), any structured value and where it came from, and numbered citation chips. Below: the price chart (Recharts, timeline events marked as dashed lines) and the case timeline.
+- **Sources** (right): All / Official / Company / News filters, citation number, how often each is cited, "No link (sample data)" instead of an invented URL, "Date unknown" when there is no date; selecting a source (or a citation chip) highlights the findings that cite it and shows its evidence excerpt.
+- Header: query, Execution view, View report (enabled when complete), and elapsed / findings / sources / verified counts with a progress bar.
+- The sample run (`lib/sampleRun.ts`) is fictional (Example Corp, ticker EXMP) with a synthetic price series generated in code; the one market-reaction figure (−9.8%) is computed from that same series, so even the demo follows D20.
+- The Workspace page is lazy-loaded so only it downloads Recharts (~400 KB).
+- Verified in the browser on 2026-10-12: navigating away and back mid-run, reloading mid-run, completion, citation selection, filters, unknown id, all three samples, phone width without horizontal scroll.
 
 ---
 
@@ -374,11 +387,13 @@ The run state lives inside the Execution page's hook, so it resets when the user
 | Shared layout (Sidebar, TopBar, AppShell) | Done |
 | Login, Sign Up, Dashboard, New Research | Done |
 | Research Execution | Done, simpler version (section 12); domain-aware replay verified in the browser |
-| Research Workspace, Final Report, Settings, Landing | Not built (stubs) |
+| Run store (shared by all research screens) | Done (Phase 1) |
+| Research Workspace | Done (Phase 1) |
+| Final Report, Settings, Landing | Not built (stubs) |
 | Backend | Scaffold, schema with reducers, 10 tests; the full dependency set installs and imports on Windows |
 
 **Remaining work, in order (reordered 2026-10-12 so the riskiest integration happens early):**
-1. Shared run store (keyed by research id) and the Research Workspace screen.
+1. ~~Shared run store (keyed by research id) and the Research Workspace screen.~~ Done 2026-10-12.
 2. Backend foundation plus one thin end-to-end slice: config, `LLMProvider` with the call counter, event bus with backlog replay, REST + WebSocket, and Router → Finance Manager → Financial Data → Data Analysis → a minimal Report, streamed into the existing Execution screen.
 3. Report contract as a Pydantic model (with D20 placeholders), then the Final Report screen and citation panel.
 4. Demo scenarios as recorded runs (D21), with real, dated data.
@@ -407,8 +422,9 @@ The approved Stitch mockups contained copy that cannot ship. Fixed so far:
 | Sidebar | "SOC2 Type II" security badge | "Demo Session, local build" |
 | Dashboard (2026-10-12) | Recent-research cards still carried a real docket number (N.D. Tex. No. 3:24-cv-00986, *Ryan LLC v. FTC*) and a thinly veiled real case, with invented source counts and timestamps; a "Patent IP" scope chip implying a third domain | Fictional sample entries without docket numbers, labelled "Fictional sample"; chip removed |
 | Execution (2026-10-12) | Mock counted page compression as an LLM call and labelled Verification as a pure LLM agent | Compression not counted; Verification labelled RULES + LLM |
+| Workspace (Phase 1) | Confidence percentages, "SHA-256 Validated", "Enclave: Zero-Knowledge", compute metrics and a "Zero-Knowledge Proof" badge, "Telemetry: Optimal", "Corporate Authenticated", "C-Suite Signed", "Cross-verified via SEC XBRL Engine", and DOJ v. Live Nation content with invented financials | Rule-based verification status with its explanation, an LLM call budget meter, fictional Example Corp sample with synthetic prices labelled as such |
 
-Still to review when built: Workspace (confidence percentages, "SHA-256 validated", "zero-knowledge" labels), Final Report (the mockup is about a real company's real lawsuit with invented financials; replace entirely), Landing (counters like "100% auditable"), Settings (fake registries, "SOC2/HIPAA", dead "Flush Cache"/"Export Audit Log" controls). The Report screen's extra "Research Dossier" sidebar item is an inconsistency to reconcile.
+Still to review when built: Final Report (the mockup is about a real company's real lawsuit with invented financials; replace entirely), Landing (counters like "100% auditable"), Settings (fake registries, "SOC2/HIPAA", dead "Flush Cache"/"Export Audit Log" controls). The Report screen's extra "Research Dossier" sidebar item is an inconsistency to reconcile.
 
 ---
 

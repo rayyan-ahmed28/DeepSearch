@@ -112,6 +112,7 @@ class Claim(BaseModel):
     claim_type: ClaimType
     source_ids: list[str] = Field(default_factory=list)
     verification: VerificationStatus = VerificationStatus.UNVERIFIED
+    domain: Optional[Domain] = None  # None = cross-domain (needs Legal and Finance evidence)
     # Structured parts of the claim, so code (not an LLM) can spot conflicts:
     # same claim, different date or figure across sources.
     event_date: Optional[date] = None
@@ -212,6 +213,7 @@ class WSEvent(BaseModel):
         "source_found",
         "claim_verified",
         "chart_ready",
+        "timeline_ready",
         "report_ready",
         "error",
     ]

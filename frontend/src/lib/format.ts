@@ -1,0 +1,41 @@
+/** mm:ss */
+export function formatElapsed(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** "10 Apr 2026" from an ISO date, independent of the viewer's time zone. */
+export function formatDate(iso: string): string {
+  return new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** "10 Apr" for chart axes. */
+export function formatShortDate(iso: string): string {
+  return new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/** A claim's structured value, e.g. "-8.6%" or "1.20 billion USD". */
+export function formatClaimValue(value: number, unit?: string | null): string {
+  if (unit === "%") return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+  if (unit === "USD" && Math.abs(value) >= 1e9) return `${(value / 1e9).toFixed(2)} billion USD`;
+  if (unit === "USD" && Math.abs(value) >= 1e6) return `${(value / 1e6).toFixed(1)} million USD`;
+  return `${value.toLocaleString("en-US")}${unit ? ` ${unit}` : ""}`;
+}
+
+/** "5m ago" style, for run lists. */
+export function formatAgo(epochMs: number, now: number): string {
+  const s = Math.max(0, Math.round((now - epochMs) / 1000));
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}

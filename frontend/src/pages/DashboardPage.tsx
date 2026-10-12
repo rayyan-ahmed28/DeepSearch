@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Brain, ArrowRight, Paperclip, ChevronDown, ShieldCheck, ExternalLink } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
-import type { ResearchDepth, ResearchMode, RunConfig } from "@/lib/runConfig";
+import { useNow } from "@/hooks/useRun";
+import { formatAgo } from "@/lib/format";
+import { domainChip } from "@/lib/labels";
+import { SAMPLE_RUNS, domainsForMode, type ResearchDepth, type ResearchMode, type RunConfig } from "@/lib/runConfig";
+import { useRunStore, type RunRecord } from "@/store/runStore";
 
 const SCOPE_OPTIONS: { id: ResearchMode; label: string; dotClass: string }[] = [
   { id: "auto", label: "All Domains", dotClass: "bg-surface-container-lowest" },
@@ -42,53 +46,55 @@ const SUGGESTED_QUERIES: { domain: string; domainClass: string; mode: ResearchMo
   },
 ];
 
-// Placeholder history until persistence lands (Phase 10). Fictional companies
-// only, no docket numbers: real cases must never carry invented details.
-const RECENT_RESEARCH = [
-  {
-    id: "demo-1",
-    domain: "LEGAL + FINANCE",
-    domainClass: "text-primary bg-primary/10",
-    caseRef: "Fictional sample",
-    title: "Example Corp: regulatory dispute and its stock-price impact",
-    updated: "sample entry",
-    status: "completed" as const,
-    sources: 8,
-  },
-  {
-    id: "demo-2",
-    domain: "LEGAL",
-    domainClass: "text-secondary bg-secondary/10",
-    caseRef: "Fictional sample",
-    title: "Sample Retail Co.: injunction status and case timeline",
-    updated: "sample entry",
-    status: "completed" as const,
-    sources: 6,
-  },
-  {
-    id: "demo-3",
-    domain: "FINANCE",
-    domainClass: "text-tertiary bg-tertiary/10",
-    caseRef: "Fictional sample",
-    title: "Sample Logistics Co.: quarterly earnings drivers",
-    updated: "sample entry",
-    status: "in_progress" as const,
-    sources: 4,
-  },
-];
+interface RecentItem {
+  id: string;
+  title: string;
+  caseRef: string;
+  domainLabel: string;
+  domainClass: string;
+  completed: boolean;
+  sources: number | null;
+}
+
+function toRecentItem(id: string, config: RunConfig, run: RunRecord | undefined, caseRef: string, completedByDefault: boolean): RecentItem {
+  const domains = run && run.state.domains.length > 0 ? run.state.domains : domainsForMode(config.mode);
+  const chip = domainChip(domains.length === 2 ? null : domains[0]);
+  return {
+    id,
+    title: config.query,
+    caseRef,
+    domainLabel: chip.label,
+    domainClass: chip.className,
+    completed: run ? run.state.done : completedByDefault,
+    sources: run ? run.state.sources.length : null,
+  };
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<ResearchMode>("auto");
   const [depth, setDepth] = useState<ResearchDepth>("standard");
+  const startRun = useRunStore((s) => s.startRun);
+  const runs = useRunStore((s) => s.runs);
+  const now = useNow(true, 30_000);
 
   // Takes query and mode explicitly: a suggestion click calls this in the
   // same tick as setQuery, before state has updated.
   function startResearch(text: string = query, mode: ResearchMode = scope) {
-    const run: RunConfig = { query: text, mode, depth };
-    navigate("/research/demo-1", { state: run });
+    const id = startRun({ query: text, mode, depth });
+    navigate(`/research/${id}`);
   }
+
+  // Runs from this browser first, then the fictional samples. Real history arrives with persistence (Phase 7).
+  const recent: RecentItem[] = [
+    ...Object.values(runs)
+      .filter((r) => !r.sample)
+      .sort((a, b) => b.startedAt - a.startedAt)
+      .slice(0, 5)
+      .map((r) => toRecentItem(r.id, r.config, r, `This browser · ${formatAgo(r.startedAt, now)}`, false)),
+    ...Object.entries(SAMPLE_RUNS).map(([sid, def]) => toRecentItem(sid, def.config, runs[sid], "Fictional sample", def.completed)),
+  ];
 
   return (
     <AppShell>
@@ -224,27 +230,26 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="flex flex-col gap-3">
-            {RECENT_RESEARCH.map((item) => (
+            {recent.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => navigate(item.status === "completed" ? `/research/${item.id}/report` : `/research/${item.id}`)}
+                onClick={() => navigate(item.completed ? `/research/${item.id}/workspace` : `/research/${item.id}`)}
                 className="text-left flex items-center justify-between gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/30 hover:border-primary-container transition-all"
               >
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <span className={`font-tag-caps text-tag-caps px-1.5 py-0.5 rounded uppercase tracking-wider ${item.domainClass}`}>
-                      {item.domain}
+                      {item.domainLabel}
                     </span>
                     <span className="font-label-code-sm text-label-code-sm text-outline">{item.caseRef}</span>
-                    <span className="font-label-code-sm text-label-code-sm text-outline">· {item.updated}</span>
                   </div>
                   <span className="font-body-md text-body-md text-on-surface font-medium">{item.title}</span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  {item.status === "completed" ? (
+                  {item.completed ? (
                     <span className="font-label-code-sm text-label-code-sm text-tertiary">
-                      ✓ {item.sources} sources
+                      ✓ {item.sources !== null ? `${item.sources} sources` : "Completed"}
                     </span>
                   ) : (
                     <span className="font-label-code-sm text-label-code-sm text-primary flex items-center gap-1.5">

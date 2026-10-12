@@ -1,15 +1,14 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CheckCircle2, FastForward, FileText, Gavel, LayoutPanelLeft, LineChart, RotateCcw } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
 import AgentTopology from "@/components/execution/AgentTopology";
 import ActivityFeed from "@/components/execution/ActivityFeed";
-import { useResearchStream } from "@/hooks/useResearchStream";
+import RunNotFound from "@/components/common/RunNotFound";
+import { useNow, useRun } from "@/hooks/useRun";
 import { AGENTS, LLM_CALL_BUDGET } from "@/lib/executionEvents";
-import { domainsForMode, type RunConfig } from "@/lib/runConfig";
-
-const DEFAULT_QUERY = "Sample run: legal dispute and stock impact for a fictional company";
+import { runElapsedMs, useRunStore } from "@/store/runStore";
 
 function formatElapsed(ms: number) {
   const s = Math.floor(ms / 1000);
@@ -25,18 +24,35 @@ const CLAIM_CLASS: Record<string, string> = {
 
 export default function ResearchExecutionPage() {
   const { id = "demo-1" } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const cfg = (location.state ?? {}) as Partial<RunConfig>;
-  const query = cfg.query?.trim() || DEFAULT_QUERY;
-  const manualOverride = cfg.mode !== undefined && cfg.mode !== "auto";
+  const { run, missing } = useRun(id);
+  if (missing) {
+    return (
+      <AppShell breadcrumb={`CORE://RESEARCH/${id.toUpperCase()}`}>
+        <RunNotFound id={id} />
+      </AppShell>
+    );
+  }
+  if (!run) return <AppShell breadcrumb={`CORE://RESEARCH/${id.toUpperCase()}`}>{null}</AppShell>;
+  return <ExecutionView id={id} />;
+}
 
-  const { state, elapsedMs, restart, skipToEnd } = useResearchStream(domainsForMode(cfg.mode), manualOverride);
+function ExecutionView({ id }: { id: string }) {
+  const navigate = useNavigate();
+  const run = useRunStore((s) => s.runs[id])!;
+  const restartRun = useRunStore((s) => s.restartRun);
+  const skipRun = useRunStore((s) => s.skipToEnd);
+  const now = useNow(!run.state.done);
+
+  const state = run.state;
+  const query = run.config.query;
+  const elapsedMs = runElapsedMs(run, now);
+  const restart = () => restartRun(id);
+  const skipToEnd = () => skipRun(id);
 
   const agentsDone = AGENTS.filter((a) => state.agents[a.id].status === "done").length;
   const agentsActive = AGENTS.filter((a) => state.agents[a.id].status !== "skipped").length;
   const progress = state.done ? 100 : Math.round((agentsDone / agentsActive) * 100);
-  const verifiedCount = state.claims.filter((c) => c.status === "verified" || c.status === "corroborated").length;
+  const verifiedCount = state.claims.filter((c) => c.verification === "verified" || c.verification === "corroborated").length;
 
   const stats = [
     { label: "Elapsed", value: formatElapsed(elapsedMs) },
@@ -54,7 +70,7 @@ export default function ResearchExecutionPage() {
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${state.done ? "bg-tertiary" : "bg-primary animate-pulse"}`} />
               <span className="font-tag-caps text-tag-caps text-outline uppercase tracking-wider">
-                {state.done ? "Run complete" : "Run in progress"} · Demo replay of sample events
+                {state.done ? "Run complete" : "Run in progress"} · Demo replay of sample events{run.sample ? " · Fictional sample" : ""}
               </span>
             </div>
             <h1 className="font-headline-lg text-headline-lg text-on-surface truncate">{query}</h1>
@@ -74,6 +90,12 @@ export default function ResearchExecutionPage() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => navigate(`/research/${id}/workspace`)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-outline-variant/40 text-on-surface-variant hover:bg-surface-container-high transition-colors font-body-md text-body-md"
+            >
+              <LayoutPanelLeft size={16} /> Workspace
+            </button>
             {!state.done && (
               <button
                 onClick={skipToEnd}
@@ -145,8 +167,8 @@ export default function ResearchExecutionPage() {
               <section className="rounded-xl bg-surface-container-low border border-outline-variant/30 p-4 flex flex-col gap-3">
                 <h2 className="font-headline-sm text-headline-sm text-on-surface">Sources found</h2>
                 <ul className="flex flex-col gap-2 max-h-56 overflow-y-auto">
-                  {state.sources.map((s, i) => (
-                    <motion.li key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col">
+                  {state.sources.map((s) => (
+                    <motion.li key={s.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col">
                       <span className="font-body-sm text-body-sm text-on-surface">{s.title}</span>
                       <span className="font-tag-caps text-tag-caps text-outline uppercase">{s.source_type.replace("_", " ")}</span>
                     </motion.li>
@@ -155,10 +177,10 @@ export default function ResearchExecutionPage() {
                 </ul>
                 {state.claims.length > 0 && (
                   <div className="pt-2 border-t border-outline-variant/20 flex flex-col gap-1">
-                    {state.claims.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between gap-2 font-body-sm text-body-sm">
+                    {state.claims.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between gap-2 font-body-sm text-body-sm">
                         <span className="text-on-surface-variant truncate">{c.text}</span>
-                        <span className={`font-tag-caps text-tag-caps uppercase ${CLAIM_CLASS[c.status]}`}>{c.status}</span>
+                        <span className={`font-tag-caps text-tag-caps uppercase ${CLAIM_CLASS[c.verification]}`}>{c.verification}</span>
                       </div>
                     ))}
                   </div>

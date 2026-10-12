@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { AGENT_LABEL } from "@/lib/executionEvents";
-import type { LogEntry } from "@/hooks/useResearchStream";
+import type { LogEntry } from "@/lib/streamReducer";
 
 interface ActivityFeedProps {
   logs: LogEntry[];

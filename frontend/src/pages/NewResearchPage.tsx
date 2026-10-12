@@ -18,7 +18,8 @@ import {
 
 import AppShell from "@/components/layout/AppShell";
 import ToggleSwitch from "@/components/common/ToggleSwitch";
-import type { ResearchDepth, ResearchMode, RunConfig } from "@/lib/runConfig";
+import type { ResearchDepth, ResearchMode } from "@/lib/runConfig";
+import { useRunStore } from "@/store/runStore";
 
 type DomainId = ResearchMode;
 type DepthId = ResearchDepth;
@@ -54,14 +55,15 @@ export default function NewResearchPage() {
   const [depth, setDepth] = useState<DepthId>("standard");
   const [advancedOpen, setAdvancedOpen] = useState(true);
   const [toggles, setToggles] = useState(DEFAULT_TOGGLES);
+  const startRun = useRunStore((s) => s.startRun);
 
   function updateToggle(key: keyof typeof DEFAULT_TOGGLES, value: boolean) {
     setToggles((prev) => ({ ...prev, [key]: value }));
   }
 
   function startResearch() {
-    const run: RunConfig = { query, mode: domain, depth };
-    navigate("/research/demo-1", { state: run });
+    const id = startRun({ query, mode: domain, depth });
+    navigate(`/research/${id}`);
   }
 
   // Re-register when the form changes, so Ctrl/Cmd+Enter submits the

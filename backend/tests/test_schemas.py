@@ -89,12 +89,21 @@ def test_claim_carries_structured_fields_for_conflict_checks():
     claim = Claim(
         text="Example Corp reported revenue of 1.2 billion USD.",
         claim_type=ClaimType.COMPANY_STATEMENT,
+        domain=Domain.FINANCE,
         event_date=date(2024, 2, 1),
         value=1.2e9,
         unit="USD",
     )
     assert claim.event_date == date(2024, 2, 1)
     assert claim.value == 1.2e9
+    assert claim.domain == Domain.FINANCE
+    # No domain means the claim is cross-domain.
+    assert Claim(text="x", claim_type=ClaimType.ANALYSIS).domain is None
+
+
+def test_ws_event_accepts_timeline_ready():
+    evt = WSEvent(type="timeline_ready", payload={"events": []})
+    assert evt.type == "timeline_ready"
 
 
 def test_financial_data_point_records_ticker_and_adjustment():

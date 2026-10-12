@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { AGENTS, EDGES, type AgentId, type AgentStatus } from "@/lib/executionEvents";
+import { AGENTS, EDGES, KIND_LABEL, type AgentId, type AgentStatus } from "@/lib/executionEvents";
 
 interface AgentTopologyProps {
   agents: Record<AgentId, { status: AgentStatus; detail?: string }>;
@@ -14,12 +14,6 @@ const COLOR: Record<AgentStatus, string> = {
 };
 
 const byId = Object.fromEntries(AGENTS.map((a) => [a.id, a])) as Record<AgentId, (typeof AGENTS)[number]>;
-
-const KIND_LABEL: Record<(typeof AGENTS)[number]["kind"], string> = {
-  llm: "LLM",
-  hybrid: "RULES + LLM",
-  tool: "DETERMINISTIC",
-};
 
 export default function AgentTopology({ agents }: AgentTopologyProps) {
   return (
