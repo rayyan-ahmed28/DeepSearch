@@ -1,0 +1,35 @@
+# ── Core ─────────────────────────────────────────────────────────
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.1
+python-dotenv>=1.0.0
+websockets>=13.1
+sqlalchemy>=2.0.28
+aiofiles>=23.2.1
+
+# ── Orchestration ────────────────────────────────────────────────
+# Pinned to the same range gpt-researcher itself requires, to avoid a
+# resolver conflict between our two uses of LangGraph.
+langgraph>=0.2.73,<0.3
+
+# ── LLM (default provider: Gemini free tier — see D1) ───────────
+google-genai>=1.0.0
+
+# ── Web Research Worker backbone ────────────────────────────────
+# Used narrowly: only GPTResearcher.conduct_research() + its getters.
+# See the technical audit — this is NOT the app's server, graph, or
+# frontend; those are ours. Brings in its own transitive stack
+# (langchain/langgraph/tavily-python/ddgs/unstructured/etc.) — expect
+# a sizeable `pip install` the first time.
+gpt-researcher>=0.14.7
+
+# ── Finance & legal data (see D3, D4) ───────────────────────────
+yfinance>=0.2.40
+pandas>=2.0.0
+numpy>=2.0.0
+requests>=2.31.0
+
+# ── Dev / test ───────────────────────────────────────────────────
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.28.1

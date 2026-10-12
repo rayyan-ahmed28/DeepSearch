@@ -1,0 +1,9 @@
+export default function SettingsPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-surface text-on-surface">
+      <p className="font-label-code-sm text-label-code-sm text-outline uppercase tracking-widest">
+        Settings — under construction
+      </p>
+    </div>
+  );
+}
