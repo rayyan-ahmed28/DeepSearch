@@ -20,6 +20,14 @@ class EventBus:
         self.closed = False
         self._subscribers: set[asyncio.Queue[WSEvent | None]] = set()
 
+    @classmethod
+    def replay(cls, events: list[WSEvent]) -> "EventBus":
+        """A finished run's bus rebuilt from saved history: subscribers get the backlog, then it ends."""
+        bus = cls()
+        bus.history = list(events)
+        bus.closed = True
+        return bus
+
     def publish(self, type_: str, payload: dict[str, Any]) -> WSEvent:
         if self.closed:
             raise RuntimeError("Cannot publish to a closed event bus")

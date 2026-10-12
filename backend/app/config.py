@@ -34,6 +34,8 @@ class Settings:
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173"])
     llm_call_budget: int = 8  # decision D9
     demo_pace_seconds: float = 0.8  # recorded runs replay at a watchable pace (0 in tests)
+    # Saved history. load_settings() uses backend/deepsearch.db; tests keep it in memory.
+    database_url: str = ":memory:"
 
     @property
     def has_gemini(self) -> bool:
@@ -67,4 +69,5 @@ def load_settings() -> Settings:
         sec_edgar_user_agent=_env("SEC_EDGAR_USER_AGENT"),
         cors_origins=origins,
         demo_pace_seconds=float(_env("DEMO_PACE_SECONDS", "0.8") or 0.8),
+        database_url=_env("DATABASE_URL", "sqlite:///./deepsearch.db") or "sqlite:///./deepsearch.db",
     )

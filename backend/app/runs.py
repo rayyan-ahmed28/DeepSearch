@@ -1,7 +1,8 @@
-"""Run registry: creates runs, executes the graph in the background, keeps results in memory.
+"""Run registry: creates runs, executes the graph in the background, saves them.
 
-Runs live in memory until persistence (SQLite) is added; restarting the server
-forgets them, and clients are told so.
+Runs in progress live in memory. Every run is also written to SQLite
+(app/db/store.py) when it starts and when it ends, so finished runs survive a
+restart and can be reopened: their saved events replay like a live run.
 """
 
 from __future__ import annotations
@@ -11,11 +12,12 @@ import logging
 import os
 from dataclasses import dataclass
 
-from app.config import Settings
+from app.config import BACKEND_DIR, Settings
+from app.db.store import RunStore, sqlite_path
 from app.demo.scenarios import RecordedLLMProvider, Scenario, SnapshotPriceSource, load_scenarios
 from app.graph.build_graph import build_graph
 from app.graph.context import LiveWorkers, RunContext
-from app.models.schemas import ExecutionStatus, ResearchRequest, ResearchState
+from app.models.schemas import ExecutionStatus, ResearchRequest, ResearchState, WSEvent
 from app.providers import BudgetExceeded, CallCounter, FakeLLMProvider, LLMProvider, build_provider
 from app.utils.events import EventBus
 from app.workers.court_records import CourtListenerRecords
@@ -26,10 +28,15 @@ from app.workers.web_search import DuckDuckGoSearch, GPTResearcherSearch, Tavily
 logger = logging.getLogger("deepsearch.runs")
 
 MAX_RUNS_IN_MEMORY = 50
+INTERRUPTED = "The server stopped while this run was in progress, so it did not finish."
 
 
 class UnknownScenario(KeyError):
     pass
+
+
+class RunInProgress(RuntimeError):
+    """The action needs a finished run."""
 
 
 @dataclass
@@ -75,8 +82,13 @@ class RunRegistry:
         llm: LLMProvider | None = None,
         prices: PriceSource | None = None,
         live: LiveWorkers | None = None,
+        store: RunStore | None = None,
     ) -> None:
         self.settings = settings
+        self.store = store or RunStore(sqlite_path(settings.database_url, BACKEND_DIR))
+        interrupted = self.store.mark_interrupted()
+        if interrupted:
+            logger.warning("%d run(s) were in progress when the server last stopped; marked interrupted", interrupted)
         self.llm = llm or build_provider(settings)
         self.fallback_llm = FakeLLMProvider()
         self.prices = prices or YahooPriceSource()
@@ -86,7 +98,43 @@ class RunRegistry:
         self.runs: dict[str, Run] = {}
 
     def get(self, research_id: str) -> Run | None:
-        return self.runs.get(research_id)
+        """A run in memory, or a finished one rebuilt from the saved history."""
+        run = self.runs.get(research_id)
+        if run is not None:
+            return run
+        loaded = self.store.load(research_id)
+        if loaded is None:
+            return None
+        summary, state, events = loaded
+        if state is None:  # interrupted: nothing but its question was saved
+            state = ResearchState(
+                research_id=research_id, user_query=summary["query"], depth=summary["depth"],
+                demo_mode=summary["demo_mode"], execution_status=ExecutionStatus.FAILED, errors=[INTERRUPTED],
+            )
+            events = [*events, WSEvent(type="error", payload={"message": INTERRUPTED}, seq=len(events) + 1)]
+        return Run(state=state, bus=EventBus.replay(events))
+
+    def summary(self, research_id: str) -> dict | None:
+        return self.store.summary(research_id)
+
+    def history(self, saved_only: bool = False, limit: int = 50) -> list[dict]:
+        return self.store.list(saved_only=saved_only, limit=limit)
+
+    def set_saved(self, research_id: str, saved: bool) -> dict | None:
+        summary = self.store.summary(research_id)
+        if summary is None:
+            return None
+        if summary["status"] != "completed":
+            raise RunInProgress("Only a finished run with a report can be saved")
+        self.store.set_saved(research_id, saved)
+        return {**summary, "saved": saved}
+
+    def delete(self, research_id: str) -> bool:
+        run = self.runs.get(research_id)
+        if run is not None and not run.bus.closed:
+            raise RunInProgress("This run is still in progress")
+        self.runs.pop(research_id, None)
+        return self.store.delete(research_id)
 
     def start(self, request: ResearchRequest) -> Run:
         scenario = None
@@ -104,6 +152,10 @@ class RunRegistry:
         run = Run(state=state, bus=EventBus(), scenario=scenario)
         self._forget_oldest_finished()
         self.runs[state.research_id] = run
+        self.store.run_started(
+            state, request.mode, "recorded" if scenario else self.llm.name,
+            scenario.id if scenario else None, scenario.data_as_of.isoformat() if scenario else None,
+        )
         run.task = asyncio.create_task(self._execute(run), name=f"run-{state.research_id}")
         return run
 
@@ -136,6 +188,10 @@ class RunRegistry:
             run.bus.publish("error", {"message": f"The run failed: {reason}"})
         finally:
             run.bus.close()
+            try:
+                self.store.run_finished(run.state, run.bus.history)
+            except Exception:  # saving must never break a run the user is watching
+                logger.exception("Could not save run %s", run.state.research_id)
 
     def _forget_oldest_finished(self) -> None:
         if len(self.runs) < MAX_RUNS_IN_MEMORY:

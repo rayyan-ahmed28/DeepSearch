@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Brain, ArrowRight, Paperclip, ChevronDown, ShieldCheck, ExternalLink } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
 import DemoScenarios from "@/components/dashboard/DemoScenarios";
 import { useNow } from "@/hooks/useRun";
+import { listHistory, type HistoryEntry } from "@/lib/api";
 import { formatAgo } from "@/lib/format";
 import { domainChip } from "@/lib/labels";
 import { SAMPLE_RUNS, domainsForMode, type ResearchDepth, type ResearchMode, type RunConfig } from "@/lib/runConfig";
@@ -54,7 +55,25 @@ interface RecentItem {
   domainLabel: string;
   domainClass: string;
   completed: boolean;
+  /** Failed, or cut off by a backend restart. */
+  stopped?: boolean;
   sources: number | null;
+}
+
+function historyItem(entry: HistoryEntry, now: number): RecentItem {
+  const domains = entry.domains.length ? entry.domains : domainsForMode(entry.mode);
+  const chip = domainChip(domains.length === 2 ? null : domains[0]);
+  const kind = entry.scenario ? "Recorded demo" : "Backend run";
+  return {
+    id: entry.research_id,
+    title: entry.query,
+    caseRef: `${kind} · ${formatAgo(Date.parse(entry.created_at), now)}`,
+    domainLabel: chip.label,
+    domainClass: chip.className,
+    completed: entry.status === "completed",
+    stopped: entry.status === "failed" || entry.status === "interrupted",
+    sources: entry.source_count,
+  };
 }
 
 function toRecentItem(id: string, config: RunConfig, run: RunRecord | undefined, caseRef: string, completedByDefault: boolean): RecentItem {
@@ -80,6 +99,11 @@ export default function DashboardPage() {
   const runs = useRunStore((s) => s.runs);
   const now = useNow(true, 30_000);
   const [starting, setStarting] = useState(false);
+  // The backend's saved history, or null when it isn't running (then this browser's runs are shown).
+  const [history, setHistory] = useState<HistoryEntry[] | null>(null);
+  useEffect(() => {
+    listHistory(false, 5).then(setHistory);
+  }, []);
 
   // Takes query and mode explicitly: a suggestion click calls this in the
   // same tick as setQuery, before state has updated.
@@ -90,15 +114,17 @@ export default function DashboardPage() {
     navigate(`/research/${id}`);
   }
 
-  // Runs from this browser first, then the fictional samples. Real history arrives with persistence (Phase 7).
+  // The saved history (or, with the backend off, this browser's runs), then the fictional samples.
   const recent: RecentItem[] = [
-    ...Object.values(runs)
-      .filter((r) => !r.sample)
-      .sort((a, b) => b.startedAt - a.startedAt)
-      .slice(0, 5)
-      .map((r) =>
-        toRecentItem(r.id, r.config, r, `${r.engine.kind === "backend" ? "Backend run" : "Sample replay"} · ${formatAgo(r.startedAt, now)}`, false),
-      ),
+    ...(history
+      ? history.map((h) => historyItem(h, now))
+      : Object.values(runs)
+          .filter((r) => !r.sample)
+          .sort((a, b) => b.startedAt - a.startedAt)
+          .slice(0, 5)
+          .map((r) =>
+            toRecentItem(r.id, r.config, r, `${r.engine.kind === "backend" ? "Backend run" : "Sample replay"} · ${formatAgo(r.startedAt, now)}`, false),
+          )),
     ...Object.entries(SAMPLE_RUNS).map(([sid, def]) => toRecentItem(sid, def.config, runs[sid], "Fictional sample", def.completed)),
   ];
 
@@ -234,7 +260,11 @@ export default function DashboardPage() {
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="font-headline-md text-headline-md text-on-surface font-semibold">Recent Research</h2>
-            <button className="flex items-center gap-1 font-body-sm text-body-sm text-primary hover:text-primary-fixed-dim transition-colors">
+            <button
+              type="button"
+              onClick={() => navigate("/history")}
+              className="flex items-center gap-1 font-body-sm text-body-sm text-primary hover:text-primary-fixed-dim transition-colors"
+            >
               View all <ExternalLink size={14} />
             </button>
           </div>
@@ -260,6 +290,8 @@ export default function DashboardPage() {
                     <span className="font-label-code-sm text-label-code-sm text-tertiary">
                       ✓ {item.sources !== null ? `${item.sources} sources` : "Completed"}
                     </span>
+                  ) : item.stopped ? (
+                    <span className="font-label-code-sm text-label-code-sm text-error">Stopped</span>
                   ) : (
                     <span className="font-label-code-sm text-label-code-sm text-primary flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />

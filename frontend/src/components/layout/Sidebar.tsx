@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Search, History, FolderOpen, Gavel, LineChart, SlidersHorizontal } from "lucide-react";
 import BrandMark from "@/components/common/BrandMark";
 
@@ -13,6 +13,9 @@ const domainLinkClasses =
   "flex items-center justify-between px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors";
 
 export default function Sidebar() {
+  const { pathname, search } = useLocation();
+  const onHistory = pathname === "/history";
+  const savedView = onHistory && new URLSearchParams(search).get("view") === "saved";
   return (
     <aside className="print:hidden fixed top-0 left-0 bottom-0 w-60 bg-surface-container-lowest border-r border-outline-variant/30 flex flex-col justify-between z-40 select-none">
       <div className="flex flex-col">
@@ -32,11 +35,11 @@ export default function Sidebar() {
               <Search size={18} />
               <span>New Research</span>
             </NavLink>
-            <NavLink to="/dashboard" end className={({ isActive }) => navLinkClasses(isActive)}>
+            <NavLink to="/history" end className={() => navLinkClasses(onHistory && !savedView)}>
               <History size={18} />
               <span>Research History</span>
             </NavLink>
-            <NavLink to="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-md text-body-md">
+            <NavLink to="/history?view=saved" className={() => navLinkClasses(savedView)}>
               <FolderOpen size={18} />
               <span>Saved Reports</span>
             </NavLink>
@@ -80,7 +83,7 @@ export default function Sidebar() {
               Demo Session
             </span>
           </div>
-          <span className="font-tag-caps text-tag-caps text-outline">Local build · nothing leaves your browser</span>
+          <span className="font-tag-caps text-tag-caps text-outline">Local build · history is saved on this computer</span>
         </div>
       </div>
     </aside>

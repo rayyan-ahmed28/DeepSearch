@@ -47,3 +47,10 @@ export function formatAgo(epochMs: number, now: number): string {
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
+
+/** "13 Oct 2026, 02:11" in the viewer's own time zone, for when something happened (not a data date). */
+export function formatLocalDateTime(when: string | number, withTime = true): string {
+  const d = new Date(when);
+  const day = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return withTime ? `${day}, ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : day;
+}

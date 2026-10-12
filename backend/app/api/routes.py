@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+from pydantic import BaseModel
 
 from app.models.schemas import ResearchRequest
-from app.runs import Run, RunRegistry, UnknownScenario
+from app.runs import Run, RunInProgress, RunRegistry, UnknownScenario
 
 router = APIRouter(prefix="/api")
 
@@ -17,8 +18,12 @@ def _registry(request: Request) -> RunRegistry:
 def _run_or_404(registry: RunRegistry, research_id: str) -> Run:
     run = registry.get(research_id)
     if run is None:
-        raise HTTPException(status_code=404, detail="Run not found (the server may have been restarted)")
+        raise HTTPException(status_code=404, detail="Run not found (it may have been deleted)")
     return run
+
+
+class SavedUpdate(BaseModel):
+    saved: bool
 
 
 @router.get("/health")
@@ -71,19 +76,47 @@ async def create_research(body: ResearchRequest, request: Request) -> dict:
     }
 
 
+@router.get("/research")
+def list_research(
+    request: Request, saved: bool = False, limit: int = Query(default=50, ge=1, le=200)
+) -> list[dict]:
+    """Research history, newest first (only saved reports with ?saved=true)."""
+    return _registry(request).history(saved_only=saved, limit=limit)
+
+
 @router.get("/research/{research_id}")
 def get_research(research_id: str, request: Request) -> dict:
-    state = _run_or_404(_registry(request), research_id).state
-    return {
-        "research_id": state.research_id,
-        "user_query": state.user_query,
-        "mode_override": state.mode_override,
-        "depth": state.depth,
-        "detected_domains": state.detected_domains,
-        "execution_status": state.execution_status,
-        "errors": state.errors,
-        "created_at": state.created_at,
-    }
+    """The run's history entry (question, settings, status, saved) plus any errors."""
+    registry = _registry(request)
+    state = _run_or_404(registry, research_id).state
+    summary = registry.summary(research_id)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="Run not found (it may have been deleted)")
+    return {**summary, "errors": state.errors}
+
+
+@router.patch("/research/{research_id}")
+def update_research(research_id: str, body: SavedUpdate, request: Request) -> dict:
+    """Save a finished report to Saved Reports, or remove it from there."""
+    try:
+        summary = _registry(request).set_saved(research_id, body.saved)
+    except RunInProgress as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if summary is None:
+        raise HTTPException(status_code=404, detail="Run not found (it may have been deleted)")
+    return summary
+
+
+@router.delete("/research/{research_id}", status_code=204)
+def delete_research(research_id: str, request: Request) -> Response:
+    """Remove a finished run from the history for good."""
+    try:
+        deleted = _registry(request).delete(research_id)
+    except RunInProgress as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Run not found (it may have been deleted)")
+    return Response(status_code=204)
 
 
 @router.get("/research/{research_id}/report")

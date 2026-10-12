@@ -6,6 +6,7 @@ import SignUpPage from "@/pages/SignUpPage";
 import DashboardPage from "@/pages/DashboardPage";
 import NewResearchPage from "@/pages/NewResearchPage";
 import ResearchExecutionPage from "@/pages/ResearchExecutionPage";
+import ResearchHistoryPage from "@/pages/ResearchHistoryPage";
 import SettingsPage from "@/pages/SettingsPage";
 
 // These pages draw charts (Recharts, ~400 KB), so they load on demand.
@@ -28,6 +29,7 @@ export default function App() {
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/research/new" element={<NewResearchPage />} />
+      <Route path="/history" element={<ResearchHistoryPage />} />
       <Route path="/research/:id" element={<ResearchExecutionPage />} />
       <Route path="/research/:id/workspace" element={<OnDemand><ResearchWorkspacePage /></OnDemand>} />
       <Route path="/research/:id/report" element={<OnDemand><ReportPage /></OnDemand>} />

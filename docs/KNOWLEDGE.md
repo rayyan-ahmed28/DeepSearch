@@ -4,7 +4,7 @@ This file is the single source of truth for the DeepSearch project: what is bein
 
 This file lives in the repository at `docs/KNOWLEDGE.md` and is kept in step with the code; copies elsewhere (claude.ai project knowledge, Downloads) may lag. The older status page "DeepSearch — Full Project Plan & Status.html" is superseded. The companion files `DEEPSEARCH_PLAN.md` and `DEEPSEARCH_PHASES.md` were not carried over; section 14 holds the phase order.
 
-**Last updated:** 2026-10-13 (Phase 6). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
+**Last updated:** 2026-10-13 (Phase 7). The latest code checkpoint (`deepsearch_wip5.zip`) was imported into a git repository and this file was reconciled with it. Where an earlier version of this file described work that is not in the code, it has been corrected.
 
 ---
 
@@ -147,8 +147,8 @@ Every message is `{type, payload, timestamp, seq}`. Types: `domain_classified` (
 **Late connections:** the browser can only open `WS /ws/research/{id}` after `POST /api/research` has returned, so early events would be lost. The per-run event bus keeps the run's event history and replays it when a socket connects; the client uses `seq` to skip events it already has.
 
 ### REST and WebSocket API
-Implemented (Phase 2): `POST /api/research` (`{query (1-2000 chars), mode, depth}` → `{research_id, llm_provider, demo_mode}`), `GET /api/research/{id}` (status, domains, errors), `GET /api/research/{id}/report` (409 until ready), `GET /api/health` (mode, LLM provider, booleans for which providers are configured, never key values), `WS /ws/research/{id}?after=<seq>` (backlog then live; unknown id → an `error` event and close code 4404). Interactive docs at `http://localhost:8000/docs`.
-Not yet: `GET /api/research/history` (Phase 7), `GET /api/demo/scenarios` (Phase 4). Runs live in server memory until persistence.
+Implemented (Phase 2): `POST /api/research` (`{query (1-2000 chars), mode, depth, scenario_id?}` → `{research_id, llm_provider, demo_mode, scenario}`), `GET /api/research/{id}` (since Phase 7, the run's history entry plus `errors`), `GET /api/research/{id}/report` (409 until ready), `GET /api/health` (mode, LLM provider, booleans for which providers are configured, never key values), `WS /ws/research/{id}?after=<seq>` (backlog then live; unknown id → an `error` event and close code 4404). Interactive docs at `http://localhost:8000/docs`.
+Added in Phase 4: `GET /api/demo/scenarios`. Added in Phase 7 (D41–D43): `GET /api/research?saved=&limit=` (history, newest first), `PATCH /api/research/{id}` `{saved}` (409 unless the run completed), `DELETE /api/research/{id}` (204; 409 while running). A history entry has `research_id, query, mode, depth, status (running | completed | failed | interrupted), created_at, finished_at, llm_provider, demo_mode, scenario, title, domains, source_count, claim_count, saved`. Every run endpoint and the WebSocket also work for runs that are only in the database: their saved events replay, then the socket closes.
 
 ### Report contract (done, Phase 3)
 `Report` in `schemas.py` (TypeScript mirror: `frontend/src/lib/report.ts`) is self-contained: research_id, title, query, generated_at, domains, demo_mode, llm_provider, ordered `sections`, plus the `sources`, `claims`, `calculations`, `charts` and `timeline` it refers to, and an `audit`. It travels in the `report_ready` event and is also served by `GET /api/research/{id}/report`.
@@ -243,6 +243,10 @@ Every load-bearing factual claim carries a citation. Clicking a citation opens a
 | D38 | Gemini gets the Pydantic schema as a JSON schema with every `$ref` inlined (`response_json_schema`). The reply is validated by Pydantic, with one retry on HTTP 429/500/503 and a 90 s timeout. A failed step falls back to the stand-in, and the report lists it under limitations | The API accepts only a subset of JSON Schema; a quota error must not end a run, and the reader must know which steps the model did not write |
 | D39 | `GEMINI_API_KEY` alone also configures GPT Researcher (its blank `GOOGLE_API_KEY`, `FAST/SMART/STRATEGIC_LLM`, `EMBEDDING`, `RETRIEVER` are filled from our settings; values the user set are kept) | Its packaged default is an xAI model, which would fail silently |
 | D40 | Verification spends no LLM call when a run retrieved no sources and computed nothing | Nothing to extract; keeps the budget for runs that need it |
+| D41 | History uses Python's built-in `sqlite3` (one `runs` table, `app/db/store.py`), not SQLAlchemy, with no browser session id. This replaces D5's mechanism | One local user and one table: plain SQL is shorter and easier to explain in the viva; a session id only matters with several users |
+| D42 | A run's full event history and final state are saved when it finishes; reopening replays the saved events through the same WebSocket | Every screen (Execution, Workspace, Report) rebuilds exactly as it was, with no second code path |
+| D43 | A row is written when a run starts; at start-up, rows still marked running become "interrupted" and reopen with a "server stopped" error | A restart mid-run is reported, never silently lost |
+| D44 | The database file is `backend/deepsearch.db` (`DATABASE_URL`, relative paths resolve against `backend/`); tests use an in-memory database | The same file whichever folder the server is started from; it is git-ignored |
 | D30 | The full graph shape and the deterministic verification rules were built in Phase 4 (pulled forward from Phases 5–6) | A recorded run must replay through the real pipeline, and statuses must be computed at replay time rather than copied from a file |
 | D31 | A figure computed in code from the cited price data counts as verified | It is checked against its data by construction; "corroborated" would wrongly imply two agreeing sources |
 | D32 | Recorded scenarios never fall back to the fictional sample: if the backend is down, the Dashboard says so and how to start it | A replay must never be mistaken for real recorded research |
@@ -355,7 +359,7 @@ The Stitch project export (zip) contains one folder per screen with `code.html` 
 `deepsearch_terminal_authentication_1` is an unused draft and is ignored. Several `screen.png` files in the first export were broken placeholders; the user re-supplied screenshots. Stitch used Tailwind via CDN with an inline Material Design 3 config and Google Material Symbols icons; both were replaced by a real Tailwind build and lucide-react. Stitch's inline `navigateToScreen(...)` handlers are replaced by React Router.
 
 ### Routes
-`/` Landing, `/login`, `/signup`, `/dashboard`, `/research/new`, `/research/:id` (Execution), `/research/:id/workspace`, `/research/:id/report`, `/settings`, anything else redirects to `/`. Until the Landing page exists, `/` redirects to `/login`. Intended navigation: Landing to Sign Up or Login; Login, Sign Up and "Continue as guest (Demo Mode)" to Dashboard; Dashboard input or suggestion to Execution; completed recent research to Workspace (to Report once it exists); New Research "Start Research" to Execution; Execution to Workspace and (when complete) Final Report; Workspace to Final Report. Auth is UI-only: forms just navigate to the Dashboard.
+`/` Landing, `/login`, `/signup`, `/dashboard`, `/research/new`, `/history` (Research History; `?view=saved` is Saved Reports, Phase 7), `/research/:id` (Execution), `/research/:id/workspace`, `/research/:id/report`, `/settings`, anything else redirects to `/`. Until the Landing page exists, `/` redirects to `/login`. Intended navigation: Landing to Sign Up or Login; Login, Sign Up and "Continue as guest (Demo Mode)" to Dashboard; Dashboard input or suggestion to Execution; completed recent research to Workspace (to Report once it exists); New Research "Start Research" to Execution; Execution to Workspace and (when complete) Final Report; Workspace to Final Report. Auth is UI-only: forms just navigate to the Dashboard.
 
 ### Architecture and conventions
 - `@/` alias maps to `src/`; it must be configured in both `tsconfig.json` (paths) and `vite.config.ts` (`resolve.alias`), and `@types/node` is needed for `vite.config.ts`.
@@ -390,7 +394,8 @@ Ported from the Stitch `deepsearch_final_research_dossier_intelligence_report` s
 - **Two engines feed the same reducer (Phase 2):** *backend* runs stream from `WS /ws/research/{id}`; the store remembers the last `seq` and reconnects with `?after=` (up to 4 retries), and a server that no longer knows the run (restart) produces a "Run stopped" banner with "Run again". *Sample* runs use the deterministic replay. Each record stores its engine, and `engineLabel()` gives the honest label shown in Execution and Workspace.
 - **Survives a reload:** only `{id, config, startedAt, skipped, engine}` is saved to localStorage (wrapped in try/catch, capped at 20 runs). Sample runs are rebuilt by replaying up to "now"; backend runs reconnect and get the backlog from the server.
 - In development Vite proxies `/api` and `/ws` to `localhost:8000` (`vite.config.ts`), so there is no CORS setup and the socket shares the page's origin.
-- The Dashboard's Recent Research lists this browser's runs first, then three fictional samples (`demo-1` combined, `demo-2` Legal, `demo-3` Finance, live replay), created on demand from `SAMPLE_RUNS` in `lib/runConfig.ts`. An unknown id shows a "This run isn't in this browser" panel.
+- The Dashboard's Recent Research lists the backend's five most recent runs (this browser's runs when the backend is off), then three fictional samples (`demo-1` combined, `demo-2` Legal, `demo-3` Finance, live replay), created on demand from `SAMPLE_RUNS` in `lib/runConfig.ts`. "View all" opens `/history`.
+- **Saved history (Phase 7):** `useRun(id)` looks up an id this browser doesn't have with `GET /api/research/{id}`, and `adoptBackendRun()` opens it; the saved events then replay over the socket. So links work across browsers and after a cleared cache, and only an id the backend doesn't have shows "Run not found". The Research History page (`pages/ResearchHistoryPage.tsx`) has All runs and Saved reports tabs, a filter, Report and Workspace links, a save star and a two-step delete (`forgetRun()` also drops the run from this browser). With the backend off, it says so and lists this browser's runs. The Report page has a Save report button for backend runs. Times are shown in the viewer's time zone (`formatLocalDateTime`); data dates stay UTC (`formatDate`).
 
 ### Research Workspace screen (done, Phase 1)
 Ported from the Stitch `deepsearch_active_research_workspace` screen, three panels:
@@ -423,7 +428,9 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 
 **Phase 6 (done): live claim extraction, Gemini hardening, live check script. 110 passing tests.** `graph/nodes/verification.py` extracts claims on live runs too. It gives the extractor the sources, calculations, company, period and the Legal Manager's case name, and builds the live timeline (D36, D37, D40). `FakeLLMProvider._extract_claims` covers figures, filings and dockets, and `same_case()` matches docket captions to the named case ("USA" and "United States", "SEC" and "Securities"). `ExtractedClaim.timeline_label` was added. The extraction prompt now includes source dates, asks for at most 12 attributed claims and allows quoting a figure a source states. The report prompt receives the findings with their statuses. `providers/gemini.py` was rewritten (D38): the client is injectable, and `inline_schema()` is tested for every LLM output model. `RunContext.fallbacks` records the steps where Gemini failed. `runs.build_live_workers` wires GPT Researcher (D39). `scripts/live_smoke.py` runs real questions through the full pipeline with the keys in `backend/.env`: three standard questions, or `--query`. It prints the setup (never key values) and each run's agents, LLM calls, sources, claims, figures, timeline, audit and warnings, and exits 0 only if every run completes with at least one source and a clean audit. Live check on 2026-10-13 with no keys: 3 of 3 passed. Nvidia (1y) had 3 verified figure claims. The Google search case had 5 verified docket claims, and 4 timeline entries that left out Richards v. Google. Tesla + SEC (legal and finance) had 8 verified claims. DuckDuckGo rate-limited on one run, which was reported and not fatal. Gemini has still not been run against the real API, because no key is set on this machine. Budget with Gemini on both domains: router 1 + managers 2 + GPT Researcher up to 3 + extraction 1 + report 1 = 8.
 
-**Not started (live):** persistence, rate limiting.
+**Phase 7 (done): saved history and reports, 114 passing tests.** `app/db/store.py` (`RunStore`: `run_started`, `run_finished`, `mark_interrupted`, `set_saved`, `delete`, `summary`, `list`, `load`) and `EventBus.replay()`. `RunRegistry` writes a row at start and at finish, and `get()` falls back to the database (D42, D43). New endpoints are in section 6. `create_app()` and `RunRegistry` accept a `store` for tests. Tests in `test_api.py`: a finished run survives a restart and its events replay identically; save, unsave and delete; a run cut off by a restart reads as interrupted; database path resolution.
+
+**Not started (live):** rate limiting.
 
 **Planned structure:** `app/main.py`, `config.py`, `api/` (routes and WebSocket), `graph/` (state, build_graph, `nodes/`), `workers/`, `providers/` (base, gemini, fake, openai stub), `demo/` (scenarios and replay runner), `models/schemas.py`, `db/`, `utils/` (logger, events). Keep the folder structure simple enough for students to explain in a viva.
 
@@ -444,7 +451,8 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 | Research Workspace | Done (Phase 1) |
 | Report contract and Final Report screen | Done (Phase 3) |
 | Settings, Landing | Not built (stubs) |
-| Backend | Full graph; finance and legal paths live (Phase 5); claim extraction and verification live and recorded (Phase 6); live check script; 110 tests |
+| Backend | Full graph; finance and legal paths live (Phase 5); claim extraction and verification live and recorded (Phase 6); live check script; SQLite history and saved reports (Phase 7); 114 tests |
+| Research History, Saved Reports | Done (Phase 7) |
 | Demo scenarios | Three recorded runs with checked sources and real price snapshots, data as of 12 Oct 2026; Dashboard "Demo scenarios" section (Phase 4) |
 
 **Remaining work, in order (reordered 2026-10-12 so the riskiest integration happens early):**
@@ -454,7 +462,7 @@ Ported from the Stitch `deepsearch_active_research_workspace` screen, three pane
 4. ~~Demo scenarios as recorded runs (D21), with real, dated data.~~ Done 2026-10-12, together with the full graph shape and the verification rules (D30).
 5. ~~Live Legal Manager and workers: Legal Records (CourtListener), Web Research, EDGAR.~~ Done 2026-10-13.
 6. ~~Live claim extraction for Verification, Gemini end-to-end, and the live smoke script.~~ Done 2026-10-13. Gemini is tested offline with a stubbed client; the first real-key run is the open item in section 19.
-7. Persistence (history, saved reports) and full integration.
+7. ~~Persistence (history, saved reports) and full integration.~~ Done 2026-10-13: runs saved in SQLite and reopenable after a restart or from another browser; Research History and Saved Reports pages; Dashboard and sidebar wired to them.
 8. Landing and Settings.
 9. Frontend hardening.
 10. Hardening, docs and viva pack.

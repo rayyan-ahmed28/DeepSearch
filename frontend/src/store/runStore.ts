@@ -9,10 +9,14 @@
  * - sample: the deterministic sample replay (lib/sampleRun.ts), used for the
  *   Dashboard samples and whenever the backend is not running. Only
  *   {config, startedAt, skipped} is saved; state is rebuilt by replaying.
+ *
+ * The backend also keeps every run in its saved history (SQLite). A backend
+ * run that isn't in this browser (a link, another browser, a cleared cache)
+ * is adopted from that history and its saved events replay over the socket.
  */
 import { create } from "zustand";
 
-import { RUN_NOT_FOUND_CLOSE_CODE, createResearch, researchSocketUrl, type LlmProvider } from "@/lib/api";
+import { RUN_NOT_FOUND_CLOSE_CODE, createResearch, researchSocketUrl, type HistoryEntry, type LlmProvider } from "@/lib/api";
 import type { ExecEvent, TimedEvent } from "@/lib/executionEvents";
 import { formatDate } from "@/lib/format";
 import { DEFAULT_SAMPLE_QUERY, SAMPLE_RUNS, domainsForMode, type RunConfig } from "@/lib/runConfig";
@@ -55,6 +59,10 @@ interface RunStore {
   restartRun: (id: string) => void;
   /** Sample runs only. */
   skipToEnd: (id: string) => void;
+  /** Open a run from the backend's saved history in this browser. */
+  adoptBackendRun: (entry: HistoryEntry) => void;
+  /** Drop a run from this browser (after it was deleted from the history). */
+  forgetRun: (id: string) => void;
 }
 
 // ── Persistence (localStorage may be missing, full or blocked) ─────
@@ -263,6 +271,34 @@ export const useRunStore = create<RunStore>()((set, get) => ({
     clearTimers(id);
     const record = sampleRecord(id, run.config, { sample: run.sample, startedAt: run.startedAt, skipped: true, note: run.engine.note });
     set((s) => ({ runs: { ...s.runs, [id]: record } }));
+    save(get().runs);
+  },
+
+  adoptBackendRun: (entry) => {
+    const id = entry.research_id;
+    if (get().runs[id]) return;
+    const engine = {
+      kind: "backend" as const,
+      llm: entry.llm_provider,
+      scenarioId: entry.scenario?.id,
+      dataAsOf: entry.scenario?.data_as_of,
+    };
+    const config: RunConfig = { query: entry.query, mode: entry.mode, depth: entry.depth };
+    const startedAt = Date.parse(entry.created_at) || Date.now();
+    set((s) => ({ runs: { ...s.runs, [id]: backendRecord(id, config, engine, startedAt) } }));
+    save(get().runs);
+    connect(id);
+  },
+
+  forgetRun: (id) => {
+    clearTimers(id);
+    const socket = sockets.get(id);
+    sockets.delete(id);
+    socket?.close();
+    set((s) => {
+      const { [id]: _gone, ...rest } = s.runs;
+      return { runs: rest };
+    });
     save(get().runs);
   },
 }));

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Calculator, CalendarClock, Download, Gavel, LayoutPanelLeft, Library, LineChart, Loader2, Network, Printer } from "lucide-react";
+import { Calculator, CalendarClock, Download, Gavel, LayoutPanelLeft, Library, LineChart, Loader2, Network, Printer, Star } from "lucide-react";
 
 import AppShell from "@/components/layout/AppShell";
 import RunErrorBanner from "@/components/common/RunErrorBanner";
@@ -8,6 +8,7 @@ import RunNotFound from "@/components/common/RunNotFound";
 import IntegrityPanel from "@/components/report/IntegrityPanel";
 import ReportBody from "@/components/report/ReportBody";
 import { useRun } from "@/hooks/useRun";
+import { getHistoryEntry, setSaved } from "@/lib/api";
 import { reportToMarkdown, type Report } from "@/lib/report";
 import { chartCaption as captionFor, engineLabel, useRunStore, type RunRecord } from "@/store/runStore";
 
@@ -84,6 +85,38 @@ function useActiveSection(ids: string[]): string | null {
   return active;
 }
 
+/** Adds the report to Saved Reports (backend runs only; hidden when the backend can't be reached). */
+function SaveReportButton({ id, className }: { id: string; className: string }) {
+  const [saved, setSavedState] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getHistoryEntry(id).then((entry) => {
+      if (!cancelled && entry && entry !== "missing") setSavedState(entry.saved);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (saved === null) return null;
+  async function toggle() {
+    setBusy(true);
+    const updated = await setSaved(id, !saved);
+    setBusy(false);
+    setFailed(!updated);
+    if (updated) setSavedState(updated.saved);
+  }
+  return (
+    <button type="button" className={className} disabled={busy} aria-pressed={saved} onClick={toggle}>
+      <Star size={16} className={saved ? "text-primary" : "text-outline"} fill={saved ? "currentColor" : "none"} />
+      {failed ? "Could not save: is the backend running?" : saved ? "Saved" : "Save report"}
+    </button>
+  );
+}
+
 function downloadText(filename: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: "text/markdown;charset=utf-8" }));
   const a = document.createElement("a");
@@ -137,6 +170,7 @@ function ReportDocument({ run, report }: { run: RunRecord; report: Report }) {
           <button type="button" className={button} onClick={() => window.print()}>
             <Printer size={16} className="text-outline" /> Print / Save as PDF
           </button>
+          {run.engine.kind === "backend" && <SaveReportButton id={run.id} className={button} />}
         </div>
         <h1 className="font-headline-xl text-headline-xl text-on-surface tracking-tight max-w-5xl">{report.title}</h1>
         <p className="font-body-md text-body-md text-on-surface-variant">
