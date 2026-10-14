@@ -56,10 +56,11 @@ TICKER_PATTERNS = (
     re.compile(r"\b(?:ticker|symbol|NASDAQ|NYSE)[:\s]+([A-Z]{1,5}(?:[.-][A-Z])?)\b"),
 )
 
-PERIOD_LABEL = {"3mo": "three months", "6mo": "six months", "1y": "year", "2y": "two years"}
+PERIOD_LABEL = {"3mo": "three months", "6mo": "six months", "1y": "year", "2y": "two years", "5y": "five years"}
 
 # A time frame named in the question wins over the depth default.
 PERIOD_PATTERNS = (
+    ("5y", re.compile(r"\b(?:five|5)[ -]years?\b|\bhalf a decade\b")),
     ("2y", re.compile(r"\b(?:two|2)[ -]years?\b|\b24 months\b")),
     ("1y", re.compile(r"\b(?:last|past|this|one|1)[ -]year\b|\b12 months\b|\bytd\b|\byear to date\b")),
     ("6mo", re.compile(r"\b(?:six|6)[ -]months?\b|\bhalf[ -]year\b")),

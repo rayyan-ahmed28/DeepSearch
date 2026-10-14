@@ -26,7 +26,7 @@ def plan_finance(query: str, period: str) -> str:
         "You are the Finance Manager of DeepSearch. Identify the US-listed company the question "
         "is about and its ticker symbol as used by Yahoo Finance (e.g. TSLA, BRK-B). If no company "
         "is named, return ticker null. Set period to the time frame the question asks about "
-        f"(3mo, 6mo, 1y or 2y); if it names none, use {period}. List 2-4 short tasks for deterministic "
+        f"(3mo, 6mo, 1y, 2y or 5y; for 3 years or more use 5y); if it names none, use {period}. List 2-4 short tasks for deterministic "
         "workers (fetch price history for that period, compute returns and volatility, prepare a chart). "
         "Do not compute or state any numbers.\n"
         f"{GUARDRAILS}\n\nQuestion: {query}"

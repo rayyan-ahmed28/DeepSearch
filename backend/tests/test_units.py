@@ -141,6 +141,7 @@ def test_find_ticker(query, ticker):
         ("How has Nvidia stock performed over the last year?", "1y"),
         ("Tesla shares over the past 3 months", "3mo"),
         ("Apple stock over two years", "2y"),
+        ("how have microsoft grown in the pat 5 years its stocks basically", "5y"),
         ("How has Tesla stock performed?", "6mo"),  # none named: depth default
     ],
 )

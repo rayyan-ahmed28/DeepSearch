@@ -46,7 +46,7 @@ class FinancePlan(BaseModel):
 
     company: Optional[str] = None
     ticker: Optional[str] = None  # US-listed symbol, e.g. "TSLA"; None if the query names none
-    period: Literal["3mo", "6mo", "1y", "2y"] = "6mo"
+    period: Literal["3mo", "6mo", "1y", "2y", "5y"] = "6mo"
     events: list[EventWindow] = Field(default_factory=list)
     tasks: list[str]
     rationale: str
