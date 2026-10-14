@@ -145,6 +145,29 @@ class DuckDuckGoSearch:
         return dedupe(await asyncio.to_thread(self._search_sync, queries, company_domains, limit), limit)
 
 
+def reply_text(content: Any) -> Any:
+    """Gemini 3 models reply with a list of content blocks; GPT Researcher expects one string."""
+    if not isinstance(content, list):
+        return content
+    parts = [b if isinstance(b, str) else b.get("text", "") for b in content if isinstance(b, str) or (isinstance(b, dict) and b.get("type", "text") == "text")]
+    return "".join(parts)
+
+
+def patch_gpt_researcher_replies() -> None:
+    """Make GPT Researcher's chat calls return plain text (once per process)."""
+    from gpt_researcher.llm_provider.generic.base import GenericLLMProvider
+
+    if getattr(GenericLLMProvider, "_deepsearch_reply_text", False):
+        return
+    original = GenericLLMProvider.get_chat_response
+
+    async def get_chat_response(self, *args, **kwargs):
+        return reply_text(await original(self, *args, **kwargs))
+
+    GenericLLMProvider.get_chat_response = get_chat_response
+    GenericLLMProvider._deepsearch_reply_text = True
+
+
 class GPTResearcherSearch:
     """GPT Researcher used narrowly (D13): one invocation per query, role pre-supplied."""
 
@@ -159,6 +182,7 @@ class GPTResearcherSearch:
         if cls is None:
             from gpt_researcher import GPTResearcher  # heavy import, only when Gemini is configured
 
+            patch_gpt_researcher_replies()
             cls = GPTResearcher
         found: list[Source] = []
         for query in queries:

@@ -67,6 +67,9 @@ def build_live_workers(settings: Settings) -> LiveWorkers:
         for name, value in gpt_researcher_env.items():
             if not os.environ.get(name, "").strip():  # a blank line in .env counts as unset
                 os.environ[name] = value
+        # Our LLM_PROVIDER=gemini is also a deprecated GPT Researcher variable: it would replace the
+        # FAST/SMART providers above with "gemini", which GPT Researcher rejects (it expects google_genai).
+        os.environ.pop("LLM_PROVIDER", None)
         web = GPTResearcherSearch()
     elif settings.tavily_api_key:
         web = TavilySearch(settings.tavily_api_key)

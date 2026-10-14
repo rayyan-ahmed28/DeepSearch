@@ -147,6 +147,14 @@ def test_gpt_researcher_is_used_narrowly():
     assert sources[0].source_type == SourceType.OFFICIAL_COURT
 
 
+def test_gemini_block_replies_become_text():
+    from app.workers.web_search import reply_text
+
+    blocks = [{"type": "thinking", "thinking": "..."}, {"type": "text", "text": "a"}, "b", {"type": "text", "text": "c", "extras": {}}]
+    assert reply_text(blocks) == "abc"
+    assert reply_text("plain") == "plain"
+
+
 # ── EDGAR ──────────────────────────────────────────────────────────
 TICKERS = {"0": {"cik_str": 1318605, "ticker": "TSLA", "title": "Tesla, Inc."}}
 SUBMISSIONS = {"filings": {"recent": {
@@ -196,6 +204,7 @@ def test_one_gemini_key_configures_gpt_researcher(monkeypatch):
     for name in GPT_RESEARCHER_VARS:
         monkeypatch.setenv(name, "")  # a blank line in .env counts as unset; monkeypatch restores them afterwards
     monkeypatch.setenv("SMART_LLM", "google_genai:my-choice")  # a value the user set is kept
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")  # ours; GPT Researcher would read it as its own deprecated setting
     live = build_live_workers(Settings(gemini_api_key="g-key", gemini_model="gemini-x", demo_mode_setting="false"))
     import os
 
@@ -204,6 +213,7 @@ def test_one_gemini_key_configures_gpt_researcher(monkeypatch):
     assert os.environ["FAST_LLM"] == "google_genai:gemini-x"
     assert os.environ["SMART_LLM"] == "google_genai:my-choice"
     assert os.environ["RETRIEVER"] == "duckduckgo"
+    assert "LLM_PROVIDER" not in os.environ
 
 
 def test_without_gemini_the_keyless_search_is_used(monkeypatch):
